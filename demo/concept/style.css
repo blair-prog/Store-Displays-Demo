@@ -109,6 +109,11 @@ p{margin:0 0 1em}.note{font-size:.85rem;color:var(--mute)}.center{text-align:cen
 .banner{position:relative;min-height:520px;display:flex;align-items:center;justify-content:center;text-align:center;color:#fff;background:linear-gradient(135deg,#2a2f38,#101216)}
 .banner-copy{padding:60px 20px}.banner-copy .eyebrow{color:#fff;opacity:.8}.banner-copy h2{margin-bottom:1em}
 .callout{padding:70px 0;background:var(--alt)}.hl-split .ph{max-width:520px}
+.ph-img{background:#f6f6f6}.ph-img img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}.ph-contain img{object-fit:contain;padding:6%}
+.ph-img .ph-ic,.ph-img .ph-label{display:none}
+.logo img{height:34px;width:auto;display:block}.ftr .logo img{filter:brightness(0) invert(1)}.t-release .hdr-over .logo img{filter:brightness(0) invert(1)}
+.mh{display:block}.sw-silver{background:linear-gradient(135deg,#f2f4f6,#aab2b8)}.sw-bronze{background:#8c6a43}.sw-cream{background:#f1e8d3}.sw-antique-white{background:#eee6d2}.sw-glass{background:rgba(180,210,230,.5)}
+.spec-split{align-items:start;margin-top:40px}.spec-split .seo{margin-top:0}
 @media(max-width:980px){.dual-g{grid-template-columns:1fr}.hdr-in{grid-template-columns:1fr auto;gap:12px}.nav{grid-column:1/-1;order:5}}
 
 
@@ -120,8 +125,8 @@ body.t-concept{line-height:1.35}
 .t-concept .btn-o{border-color:#171717}.t-concept .btn-w{background:#fff;color:#171717;border-color:#fff}
 .t-concept .eyebrow{font-weight:500;letter-spacing:0;text-transform:none;font-size:.9rem;color:var(--mute)}
 .t-concept .ann{background:#171717;color:#fff;font-size:.8rem}
-.t-concept .hdr-in{padding:22px 32px}.t-concept .nav>ul{justify-content:center;gap:28px}
-.t-concept .nav>ul>li>a{font-size:1.02rem;font-weight:500;text-transform:none;letter-spacing:0}
+.t-concept .hdr-in{padding:22px 32px}.t-concept .nav>ul{justify-content:center;gap:22px}
+.t-concept .nav>ul>li>a{font-size:.92rem;font-weight:500;text-transform:none;letter-spacing:0}
 .t-concept .logo-a{font-weight:700;letter-spacing:-.03em;font-size:1.7rem}.t-concept .logo-d{letter-spacing:.28em;font-size:.58rem}
 .t-concept .cart span{background:#171717;color:#fff}
 .hero-c{padding:0 20px 8px}.hero-c .slide{position:relative;border-radius:16px;overflow:hidden;aspect-ratio:16/7;min-height:380px;background:#1b2430}
@@ -131,6 +136,7 @@ body.t-concept{line-height:1.35}
 .hero-c .btn-w{position:absolute;right:clamp(24px,4vw,56px);bottom:clamp(36px,6vw,70px);z-index:2}
 .dots{position:absolute;left:50%;bottom:20px;transform:translateX(-50%);display:flex;gap:8px;z-index:2}
 .dots i{width:6px;height:6px;border-radius:50%;background:rgba(255,255,255,.5)}.dots i.on{background:#fff}
+.hero-c .slide::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,0) 35%,rgba(0,0,0,.6));z-index:1}
 .t-concept .intro{padding:clamp(60px,9vw,120px) 0}.t-concept .intro h2{font-size:clamp(2rem,4.2vw,3.2rem);max-width:760px;margin-left:auto;margin-right:auto}
 .t-concept .intro p{color:var(--mute);max-width:560px;margin:0 auto 1.6em}
 .t-concept .sh{align-items:center}.t-concept .more{border:2px solid #171717;border-radius:999px;color:#171717;padding:.5em 1.2em;font-weight:500}
