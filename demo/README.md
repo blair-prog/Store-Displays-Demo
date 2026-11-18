@@ -6,16 +6,16 @@ They exist so the client can react to a design direction before their Shopify st
 
 | Concept | Feel |
 |---|---|
-| `concept/` | Bold and modern. Closest to the Displayarama look the client asked for. |
-| `release/` | Content-rich and sectional. Featured, Specials and New Arrivals blocks, like Palay Display, plus Displayarama-style industry tiles. |
-| `prestige/` | Premium and showcase-led. Calmer, serif, more upscale. |
+| `concept/` | Light, airy and rounded: Inter type, pill buttons, a rounded photo slideshow. Modeled on the Concept demo store. |
+| `release/` | Editorial: a transparent header over a full-bleed hero, light Poppins headlines, banner-led sections. Modeled on the Release demo store. |
+| `prestige/` | Quiet and architectural: spaced uppercase headings, square buttons, a light grey page. Modeled on the Prestige demo store. |
 
 Open `index.html` for the overview and a comparison table.
 
 ## What this is not
 
 - **Not the real Shopify themes.** Concept, Release and Prestige are paid themes whose code is not available
-  without purchase. These are HTML/CSS mockups styled after each theme's layout feel.
+  without purchase. These are HTML/CSS mockups modeled on each theme's public demo store (typography, colours, header, hero and section order). They use none of the theme code or the demo photography, so they approximate the look and are not a substitute for the real themes.
 - **Not a build.** Prices, photos, stats, reviews, blog posts, FAQ answers and the industry list are SAMPLE or
   CONCEPT. Nothing here is client-approved copy.
 - **Not a configurator.** The gondola builder is a step-by-step mock with sample pricing. A real one needs an

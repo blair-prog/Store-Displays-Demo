@@ -105,13 +105,14 @@ BLOGS = [
 ]
 
 THEMES = {
-    "concept": dict(name="Concept", tag="Bold and modern. Closest to the Displayarama feel the client asked for.",
-                    order=["tiles", "industries", "trending", "gondolaband", "gallery", "stats", "reviews", "faq", "blog", "newsletter"]),
-    "release": dict(name="Release", tag="Content-rich and sectional. Featured, Specials and New Arrivals blocks, like Palay, with Displayarama's industry tiles.",
-                    order=["logos", "tiles", "trending", "industries", "gondolaband", "gallery", "stats", "reviews", "faq", "blog", "newsletter"]),
-    "prestige": dict(name="Prestige", tag="Premium and showcase-led. Calmer, larger imagery, a more upscale read.",
-                     order=["showcase", "tiles", "trending", "industries", "gondolaband", "stats", "reviews", "faq", "blog", "newsletter"]),
+    "concept": dict(name="Concept", tag="Light, airy and rounded. Inter type, pill buttons, a rounded photo slideshow and a bundle-style builder, as on the Concept demo store.",
+                    order=["intro", "tiles", "trending", "gondolaband", "industries", "gallery", "reviews", "blog", "faq", "newsletter"]),
+    "release": dict(name="Release", tag="Editorial. A transparent header over a full-bleed hero, light Poppins headlines and banner-led sections, as on the Release demo store.",
+                    order=["trending", "dualtiles", "banner", "tiles", "callout", "highlight", "industries", "reviews", "showroom", "blog", "faq", "newsletter"]),
+    "prestige": dict(name="Prestige", tag="Quiet and architectural. Spaced uppercase headings, square buttons and a light grey page, as on the Prestige demo store.",
+                     order=["tiles", "trending", "banner", "industries", "highlight", "blog", "faq", "newsletter"]),
 }
+
 
 # ----------------------------------------------------------------------------
 # SVG icons (simple line drawings, colored by currentColor)
@@ -136,24 +137,32 @@ def ph(kind, label="Photo placeholder", cls=""):
 # ----------------------------------------------------------------------------
 # Shared page chrome
 # ----------------------------------------------------------------------------
-def head(theme, title, extra=""):
+FONTS = {
+    "concept": "Inter:wght@400;500;700",
+    "release": "Poppins:wght@300;400;500;600",
+    "prestige": "Instrument+Sans:wght@400;500&family=Nunito:wght@400;600;700",
+}
+
+
+def head(theme, title):
     t = THEMES[theme]
+    fonts = ('<link rel="preconnect" href="https://fonts.googleapis.com">'
+             '<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>'
+             '<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=%s&display=swap">') % FONTS[theme]
     return ('<!doctype html><html lang="en"><head><meta charset="utf-8">'
             '<meta name="viewport" content="width=device-width,initial-scale=1">'
             '<title>%s | AMKO Displays | %s concept</title>'
-            '<meta name="description" content="Visual concept of AMKO Displays on Shopify, styled after the %s theme layout. Sample content.">'
-            '<link rel="stylesheet" href="style.css">%s</head><body class="t-%s">') % (title, t["name"], t["name"], extra, theme)
-
+            '<meta name="description" content="Visual concept of AMKO Displays on Shopify, modeled on the %s demo store. Sample content.">'
+            '%s<link rel="stylesheet" href="style.css"></head><body class="t-%s">') % (title, t["name"], t["name"], fonts, theme)
 
 def concept_bar(theme, page):
     links = []
     for k, v in THEMES.items():
         cur = ' aria-current="page"' if k == theme else ""
         links.append('<a href="../%s/%s"%s>%s</a>' % (k, page, cur, v["name"]))
-    return ('<div class="cbar"><span><strong>Visual concept.</strong> Static mockup styled after the %s theme layout, '
+    return ('<div class="cbar"><span><strong>Visual concept.</strong> Static mockup modeled on the %s theme\'s public demo store, '
             'not the real theme. Prices, photos and stats are SAMPLE.</span><nav aria-label="Switch concept">%s'
             '<a href="../index.html">Overview</a></nav></div>') % (THEMES[theme]["name"], "".join(links))
-
 
 def wordmark():
     return '<a class="logo" href="index.html"><span class="logo-a">AMKO</span><span class="logo-d">DISPLAYS</span></a>'
@@ -167,24 +176,48 @@ def mega():
     return '<div class="mega" role="menu">%s<div class="mcol mpromo"><strong>Need help choosing?</strong><p>Call our fixture experts or request a free layout plan.</p><a class="btn btn-sm" href="industries.html#layouts">Free layout plan</a></div></div>' % "".join(cols)
 
 
+HEADER_NAV = {
+    "concept": ["Shop Products", "Gondola Shelving", "Display Cases", "Shop by Industry", "Free Store Layouts", "Contact"],
+    "release": ["Shop Products", "Shop by Industry", "Free Store Layouts", "Contact"],
+    "prestige": ["Shop Products", "Display Cases", "Shop by Industry", "Contact"],
+}
+
+_SVG = 'viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"'
+ICON_SVG = {
+    "search": '<svg %s><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg>' % _SVG,
+    "user": '<svg %s><circle cx="12" cy="8" r="4"/><path d="M4 21c1-4 4-6 8-6s7 2 8 6"/></svg>' % _SVG,
+    "cart": '<svg %s><path d="M5 8h14l-1 12H6L5 8z"/><path d="M9 8a3 3 0 016 0"/></svg>' % _SVG,
+}
+
+
 def header(theme, page):
+    mm = mega()
     items = []
     for label, href, has_mega in NAV:
+        if label not in HEADER_NAV[theme]:
+            continue
         if has_mega:
-            items.append('<li class="has-mega"><a href="%s">%s <span class="car">&#9662;</span></a>%s</li>' % (href, label, mega()))
+            items.append('<li class="has-mega"><a href="%s">%s</a>%s</li>' % (href, label, mm))
         else:
             items.append('<li><a href="%s">%s</a></li>' % (href, label))
-    ann = ""
-    if theme == "release":
-        ann = '<div class="ann">Free store layout plans &middot; Volume pricing on gondola runs &middot; Ships across the U.S. (except AK and HI)</div>'
-    util = ('<div class="util"><span>Call now <a href="tel:%s">%s</a></span>'
-            '<span class="ulinks"><a href="#">Calculate shipping</a><a href="#">New customer application</a><a href="#">My account</a></span></div>') % (PHONE1, PHONE1)
-    search = ('<form class="search" role="search" onsubmit="return false"><input type="search" aria-label="Search products" '
-              'placeholder="Search products, e.g. gondola, museum case"><button type="submit" aria-label="Search">&#128269;</button></form>')
-    cart = '<a class="cart" href="#" aria-label="Cart, 0 items">Cart <span>0</span></a>'
-    return ('%s%s<header class="hdr">%s<div class="hdr-in">%s%s<nav class="nav" aria-label="Main"><ul>%s</ul></nav>%s</div></header>'
-            % (concept_bar(theme, page), ann, util, wordmark(), search, "".join(items), cart))
-
+    nav = '<nav class="nav" aria-label="Main"><ul>%s</ul></nav>' % "".join(items)
+    icons = ('<div class="hicons"><a href="#" aria-label="Search">%s</a><a href="#" aria-label="Account">%s</a>'
+             '<a class="cart" href="#" aria-label="Cart, 0 items">%s<span>0</span></a></div>') % (
+        ICON_SVG["search"], ICON_SVG["user"], ICON_SVG["cart"])
+    if theme == "concept":
+        ann = ('<div class="ann"><span class="ann-l">f &nbsp; X &nbsp; ig &nbsp; yt</span>'
+               '<span class="ann-m">&lsaquo;&nbsp; Free store layout plans &middot; ships across the U.S. except AK and HI &nbsp;&rsaquo;</span>'
+               '<span class="ann-r">English &middot; United States (USD $)</span></div>')
+        inner, cls = wordmark() + nav + icons, "hdr"
+    elif theme == "release":
+        ann = ('<div class="ann"><span>United States</span><span>Free store layout plans</span>'
+               '<span>Call %s</span><span>Ships across the U.S.</span></div>') % PHONE1
+        inner = nav + wordmark() + icons
+        cls = "hdr hdr-over" if page == "index.html" else "hdr"
+    else:
+        ann = '<div class="ann"><span>Free store layout plans</span><a href="industries.html#layouts">Shop now</a></div>'
+        inner, cls = nav + wordmark() + icons, "hdr"
+    return '%s%s<header class="%s"><div class="hdr-in">%s</div></header>' % (concept_bar(theme, page), ann, cls, inner)
 
 def footer(theme):
     return ('<footer class="ftr"><div class="wrap fgrid">'
@@ -235,32 +268,57 @@ def section_head(eyebrow, title, link=None):
 # ----------------------------------------------------------------------------
 def hero(theme):
     if theme == "concept":
-        return ('<section class="hero hero-c"><div class="wrap hero-grid"><div class="hero-copy">'
-                '<span class="eyebrow">Displays solution leader</span>'
-                '<h1>Store fixtures,<br>priced and ready<br>to ship.</h1>'
-                '<p>See product details and pricing right on the site. Build a gondola run in minutes or get a free layout plan from our team.</p>'
-                '<div class="ctas"><a class="btn" href="gondola.html">Build your gondola run</a>'
-                '<a class="btn btn-o" href="industries.html#layouts">Request free layout</a></div></div>'
-                '<div class="hero-tiles">%s%s%s%s</div></div></section>'
-                ) % (ph("gondola", "Gondola shelving photo", "h-t1"), ph("case", "Display case photo", "h-t2"),
-                     ph("slatwall", "Slatwall photo", "h-t3"), ph("rack", "Apparel rack photo", "h-t4"))
+        return ('<section class="hero-c"><div class="slide"><div class="ph ph-hero" role="img" aria-label="Hero photo placeholder">'
+                '<div class="ph-ic">%s</div><span class="ph-label">Hero photo placeholder</span></div>'
+                '<div class="slide-copy"><h1>Store fixtures, priced and ready to ship</h1></div>'
+                '<a class="btn btn-w" href="gondola.html">Shop gondola shelving</a>'
+                '<div class="dots"><i class="on"></i><i></i><i></i></div></div></section>') % icon("gondola")
     if theme == "release":
-        return ('<section class="hero hero-r"><div class="wrap"><span class="eyebrow">Everything your store needs</span>'
-                '<h1>Shop store fixtures by category or by industry</h1>'
-                '<p>Slatwall, gondola shelving, display cases, racks and more, with product details and prices up front.</p>'
-                '<form class="hero-search" onsubmit="return false"><input type="search" aria-label="Search" placeholder="Search fixtures"><button class="btn">Search</button></form>'
-                '<div class="chips"><a href="gondola.html">Gondola shelving</a><a href="collection.html">Display cases</a><a href="industries.html">Shop by industry</a>'
-                '<a href="industries.html#layouts">Free store layouts</a></div></div></section>')
-    return ('<section class="hero hero-p"><div class="wrap hero-p-in"><span class="eyebrow">AMKO Displays</span>'
-            '<h1>Showcases made to be seen.</h1>'
-            '<p>Display cases, counters and fixtures for retailers who care how their merchandise is presented.</p>'
-            '<div class="ctas"><a class="btn" href="collection.html">Shop display cases</a><a class="btn btn-o" href="industries.html#layouts">Free layout plan</a></div></div></section>')
+        return ('<section class="hero-r"><div class="hero-r-in"><span class="eyebrow">Everything your store needs</span>'
+                '<h1>Fixtures, by design</h1><a class="btn btn-ow" href="collection.html">Discover more</a></div></section>')
+    return ('<section class="hero-p"><div class="hero-p-in"><h1>Showcases made to be seen</h1>'
+            '<a class="btn btn-lt" href="collection.html">Shop display cases</a></div></section>')
 
 
-def sec_logos(theme):
-    return ('<section class="band logos"><div class="wrap"><p class="lbl">Trusted by retailers nationwide (placeholder logos)</p>'
-            '<div class="lrow">%s</div></div></section>') % "".join('<span>Client logo</span>' for _ in range(6))
+def sec_intro(theme):
+    return ('<section class="sec intro"><div class="wrap narrow center-t"><h2>We believe in clear prices and real details</h2>'
+            '<p>Sample intro copy. Store fixtures with sizes, finishes and prices on the page, and a team ready to plan your layout.</p>'
+            '<a class="btn" href="industries.html#layouts">Request a free layout plan</a></div></section>')
 
+
+def sec_dualtiles(theme):
+    t = [("Gondola shelving", "gondola", "gondola.html", "Build your run"),
+         ("Display cases &amp; counters", "case", "collection.html", "Shop cases")]
+    tiles = "".join('<a class="dtile" href="%s">%s<div class="dt-copy"><span class="eyebrow">Featured</span><h2>%s</h2>'
+                    '<span class="btn btn-ow">%s</span></div></a>' % (h, ph(k, "Tile photo placeholder", "ph-dt"), n, c)
+                    for n, k, h, c in t)
+    return '<section class="sec dual"><div class="wrap-w dual-g">%s</div></section>' % tiles
+
+
+def sec_banner(theme):
+    return ('<section class="banner"><div class="banner-copy"><span class="eyebrow">Free store layouts</span>'
+            '<h2>Plan your store with our team</h2>'
+            '<a class="btn btn-ow" href="industries.html#layouts">Request your free layout plan</a></div></section>')
+
+
+def sec_callout(theme):
+    return ('<section class="callout"><div class="wrap center-t"><h2>Volume pricing on gondola runs</h2>'
+            '<p>Concept offer. Final bulk pricing terms to be confirmed.</p>'
+            '<a class="btn" href="industries.html#contact">Get bulk pricing</a></div></section>')
+
+
+def sec_highlight(theme):
+    p = PRODUCTS[0]
+    return ('<section class="sec"><div class="wrap split hl-split">%s<div><span class="eyebrow">Item of the week</span><h2>%s</h2>'
+            '<p class="pdim">%s</p><p><strong class="price">%s</strong> <span class="samp">sample</span></p>'
+            '<div class="ctas"><a class="btn" href="product.html">Shop now</a></div></div></div></section>'
+            ) % (ph("case", "Product photo placeholder", "ph-tall"), p["name"], p["dims"], money(p["price"]))
+
+
+def sec_showroom(theme):
+    return ('<section class="sec alt"><div class="wrap split"><div><span class="eyebrow">Our showroom</span><h2>Visit AMKO Displays</h2>'
+            '<p>%s</p><p>Tel <a href="tel:%s">%s</a></p><a class="btn" href="industries.html#contact">Get directions (concept)</a></div>%s</div></section>'
+            ) % (ADDRESS, PHONE1, PHONE1, ph("form", "Showroom photo placeholder", "ph-wide"))
 
 def sec_tiles(theme):
     t = "".join('<a class="ctile" href="%s">%s<span class="ct-name">%s</span><span class="ct-go">Shop all &rarr;</span></a>'
@@ -327,18 +385,13 @@ def sec_newsletter(theme):
             '<input id="em" type="email" placeholder="you@yourstore.com" required><button class="btn">Sign up</button></form></div></section>')
 
 
-def sec_showcase(theme):
-    return ('<section class="sec"><div class="wrap split">%s<div><span class="eyebrow">Display cases</span>'
-            '<h2>Museum, frameless and counter showcases</h2><p>Jewelry and museum cases, extra, full and half vision cases, ledgetop and corner counters, '
-            'with sizes, glass dimensions, lighting and finishes listed right on the page.</p>'
-            '<a class="btn" href="collection.html">Explore display cases</a></div></div></section>') % ph("case", "Showcase photo", "ph-tall")
-
-
 SECS = {
-    "logos": sec_logos, "tiles": sec_tiles, "industries": sec_industries, "trending": sec_trending,
+    "intro": sec_intro, "tiles": sec_tiles, "dualtiles": sec_dualtiles, "banner": sec_banner, "callout": sec_callout,
+    "highlight": sec_highlight, "showroom": sec_showroom, "industries": sec_industries, "trending": sec_trending,
     "gondolaband": sec_gondolaband, "gallery": sec_gallery, "stats": sec_stats, "reviews": sec_reviews,
-    "faq": sec_faq, "blog": sec_blog, "newsletter": sec_newsletter, "showcase": sec_showcase,
+    "faq": sec_faq, "blog": sec_blog, "newsletter": sec_newsletter,
 }
+
 
 # ----------------------------------------------------------------------------
 # Pages
@@ -487,13 +540,9 @@ p{margin:0 0 1em}.note{font-size:.85rem;color:var(--mute)}.center{text-align:cen
 .ann{background:var(--accent);color:var(--on-accent);text-align:center;font-size:.82rem;padding:7px 12px;font-weight:600}
 .hdr{background:var(--hdr);color:var(--hdr-ink);position:relative;z-index:50;border-bottom:var(--hdr-bd)}
 @media(min-height:760px) and (min-width:981px){.hdr{position:sticky;top:0}}
-.util{display:flex;justify-content:space-between;max-width:1240px;margin:0 auto;padding:6px 20px;font-size:.78rem;opacity:.85}
-.util a{margin-left:14px}.util .ulinks a:first-child{margin-left:0}
 .hdr-in{max-width:1240px;margin:0 auto;padding:12px 20px;display:flex;flex-wrap:wrap;align-items:center;gap:14px 24px}
 .logo{text-decoration:none;display:flex;flex-direction:column;line-height:1;font-family:var(--head)}
 .logo-a{font-size:1.9rem;font-weight:900;letter-spacing:.06em}.logo-d{font-size:.66rem;letter-spacing:.42em;opacity:.8}
-.search{flex:1;min-width:200px;display:flex}.search input{flex:1;padding:.7em 1em;border:1px solid #cfcfcf;border-radius:var(--r) 0 0 var(--r);font-family:inherit}
-.search button{border:0;background:var(--accent);color:var(--on-accent);padding:0 1em;border-radius:0 var(--r) var(--r) 0;cursor:pointer}
 .cart{text-decoration:none;font-weight:700}.cart span{background:var(--accent);color:var(--on-accent);border-radius:99px;padding:1px 8px;margin-left:4px;font-size:.8rem}
 .nav{order:5;width:100%}.nav>ul{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:4px 22px}
 .nav>ul>li>a{display:block;padding:.4em 0;text-decoration:none;font-weight:600;font-size:.92rem;text-transform:var(--ntt)}
@@ -568,50 +617,126 @@ p{margin:0 0 1em}.note{font-size:.85rem;color:var(--mute)}.center{text-align:cen
 .b-nav{display:flex;justify-content:space-between;margin-top:20px}
 .b-sum{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:20px;position:static;display:grid;gap:10px}.b-sum ul{list-style:none;margin:0;padding:0;font-size:.88rem}.b-sum li{display:flex;justify-content:space-between;gap:8px;padding:5px 0;border-bottom:1px solid var(--line)}
 .b-total{display:grid}.b-total strong{font-size:2rem;font-family:var(--head)}.b-total small{color:var(--mute)}
-.hero-grid{display:grid;grid-template-columns:1.1fr 1fr;gap:40px;align-items:center}
 @media(max-width:980px){.mega{display:none!important}.tiles,.revs,.blogs,.gal{grid-template-columns:1fr 1fr}.itiles,.pgrid.c4{grid-template-columns:1fr 1fr}.pgrid.c3{grid-template-columns:1fr 1fr}
-.fgrid,.srow,.vtiles{grid-template-columns:1fr 1fr}.clayout,.pdp,.split,.gb-in,.hero-grid{grid-template-columns:1fr}.builder{grid-template-columns:1fr}.b-steps{flex-direction:row;flex-wrap:wrap}.b-sum{position:static}}
-@media(max-width:560px){.tiles,.revs,.blogs,.gal,.itiles,.pgrid.c4,.pgrid.c3,.fgrid,.srow,.vtiles{grid-template-columns:1fr}.util{flex-direction:column;gap:4px}}
+.fgrid,.srow,.vtiles{grid-template-columns:1fr 1fr}.clayout,.pdp,.split,.gb-in{grid-template-columns:1fr}.builder{grid-template-columns:1fr}.b-steps{flex-direction:row;flex-wrap:wrap}.b-sum{position:static}}
+@media(max-width:560px){.tiles,.revs,.blogs,.gal,.itiles,.pgrid.c4,.pgrid.c3,.fgrid,.srow,.vtiles{grid-template-columns:1fr}}
+"""
+
+EXTRA_CSS = r"""
+.center-t{text-align:center}.wrap-w{max-width:1900px;margin:0 auto;padding:0 24px}
+.ann{display:flex;justify-content:space-between;align-items:center;gap:16px;padding:10px 24px;font-size:.78rem}
+.hdr-in{display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:24px;max-width:1900px;padding:16px 28px}
+.nav{order:0;width:auto}.nav a{white-space:nowrap}.hicons{display:flex;gap:18px;align-items:center}.hicons a{display:inline-flex;text-decoration:none;color:inherit}
+.cart{position:relative}.cart span{position:absolute;top:-8px;right:-10px;font-size:.62rem;padding:0 5px;line-height:1.5;margin:0}
+.dual-g{display:grid;grid-template-columns:1fr 1fr;gap:16px}.dtile{position:relative;display:block;text-decoration:none;color:#fff;overflow:hidden}
+.dtile .ph{aspect-ratio:4/3;border-radius:inherit;--ph1:#2b2b2b;--ph2:#161616;--ph-ink:#fff}
+.dt-copy{position:absolute;inset:auto 0 0 0;padding:32px;text-align:left}.dt-copy h2{margin:.2em 0 .6em}.dt-copy .eyebrow{color:#fff;opacity:.8}
+.banner{position:relative;min-height:520px;display:flex;align-items:center;justify-content:center;text-align:center;color:#fff;background:linear-gradient(135deg,#2a2f38,#101216)}
+.banner-copy{padding:60px 20px}.banner-copy .eyebrow{color:#fff;opacity:.8}.banner-copy h2{margin-bottom:1em}
+.callout{padding:70px 0;background:var(--alt)}.hl-split .ph{max-width:520px}
+@media(max-width:980px){.dual-g{grid-template-columns:1fr}.hdr-in{grid-template-columns:1fr auto;gap:12px}.nav{grid-column:1/-1;order:5}}
 """
 
 CSS_CONCEPT = r"""
-:root{--body:"Helvetica Neue",Arial,sans-serif;--head:"Arial Black","Helvetica Neue",Arial,sans-serif;--ls:-.01em;--ink:#10151f;--bg:#fff;--alt:#f1f3f6;--card:#fff;--line:#d9dee6;--mute:#5b6577;
---accent:#ff5a1f;--on-accent:#fff;--dark:#0e1624;--hdr:#0e1624;--hdr-ink:#fff;--hdr-bd:0;--r:2px;--btt:uppercase;--ntt:uppercase;--ph1:#dfe4ec;--ph2:#c3cbd8;--ph-ink:#1b2535}
-.t-concept h1,.t-concept h2{text-transform:uppercase}.t-concept .search input{border-color:#2a3550}
-.hero-c{background:var(--dark);color:#fff;padding:64px 0}.hero-c h1{font-size:clamp(2.6rem,6vw,4.6rem);line-height:.98}.hero-c p{max-width:480px;color:#c8d0de}.hero-c .btn-o{color:#fff;border-color:#fff}
-.hero-tiles{display:grid;grid-template-columns:1fr 1fr;gap:14px}.hero-tiles .ph{aspect-ratio:1/1;--ph1:#26324a;--ph2:#35435f;--ph-ink:#fff}.h-t2{transform:translateY(24px)}.h-t4{transform:translateY(24px)}
-.t-concept .itile,.t-concept .pcard,.t-concept .vt,.t-concept .rev{border-width:2px;border-color:#10151f}.t-concept .itile:hover{background:var(--accent);color:#fff}.t-concept .itile:hover .it-g{color:#fff}
-.t-concept .ctile .ph{border:2px solid #10151f}.t-concept .badge{border-radius:0}
-.t-concept .stats{background:var(--accent);border:0}.t-concept .srow strong,.t-concept .srow span{color:#fff}
-.nav>ul>li>a{font-size:.8rem;letter-spacing:.04em}
+:root{--body:Inter,"Helvetica Neue",Arial,sans-serif;--head:Inter,"Helvetica Neue",Arial,sans-serif;--ls:-.03em;--ink:#171717;--bg:#fff;--alt:#f6f6f6;--card:#fff;--line:#e6e6e6;--mute:#6e6e6e;
+--accent:#171717;--on-accent:#fff;--dark:#171717;--hdr:#fff;--hdr-ink:#171717;--hdr-bd:0;--r:12px;--btt:none;--ntt:none;--ph1:#f4f4f4;--ph2:#e9e9e9;--ph-ink:#171717}
+body.t-concept{line-height:1.35}
+.t-concept h1,.t-concept h2{font-weight:700;line-height:1}.t-concept h2{font-size:clamp(1.8rem,3vw,2.5rem)}
+.t-concept .btn{border-radius:999px;border-width:2px;font-weight:500;padding:.9em 1.7em}
+.t-concept .btn-o{border-color:#171717}.t-concept .btn-w{background:#fff;color:#171717;border-color:#fff}
+.t-concept .eyebrow{font-weight:500;letter-spacing:0;text-transform:none;font-size:.9rem;color:var(--mute)}
+.t-concept .ann{background:#171717;color:#fff;font-size:.8rem}
+.t-concept .hdr-in{padding:22px 32px}.t-concept .nav>ul{justify-content:center;gap:28px}
+.t-concept .nav>ul>li>a{font-size:1.02rem;font-weight:500;text-transform:none;letter-spacing:0}
+.t-concept .logo-a{font-weight:700;letter-spacing:-.03em;font-size:1.7rem}.t-concept .logo-d{letter-spacing:.28em;font-size:.58rem}
+.t-concept .cart span{background:#171717;color:#fff}
+.hero-c{padding:0 20px 8px}.hero-c .slide{position:relative;border-radius:16px;overflow:hidden;aspect-ratio:16/7;min-height:380px;background:#1b2430}
+.ph-hero{position:absolute;inset:0;aspect-ratio:auto;border-radius:0;--ph1:#4a5a70;--ph2:#161d28;--ph-ink:#fff}.ph-hero .ph-ic{width:22%;opacity:.25}
+.slide-copy{position:absolute;left:clamp(24px,4vw,56px);bottom:clamp(40px,7vw,80px);max-width:620px;color:#fff;z-index:2}
+.slide-copy h1{font-size:clamp(1.8rem,3.4vw,2.7rem);text-transform:uppercase;margin:0}
+.hero-c .btn-w{position:absolute;right:clamp(24px,4vw,56px);bottom:clamp(36px,6vw,70px);z-index:2}
+.dots{position:absolute;left:50%;bottom:20px;transform:translateX(-50%);display:flex;gap:8px;z-index:2}
+.dots i{width:6px;height:6px;border-radius:50%;background:rgba(255,255,255,.5)}.dots i.on{background:#fff}
+.t-concept .intro{padding:clamp(60px,9vw,120px) 0}.t-concept .intro h2{font-size:clamp(2rem,4.2vw,3.2rem);max-width:760px;margin-left:auto;margin-right:auto}
+.t-concept .intro p{color:var(--mute);max-width:560px;margin:0 auto 1.6em}
+.t-concept .sh{align-items:center}.t-concept .more{border:2px solid #171717;border-radius:999px;color:#171717;padding:.5em 1.2em;font-weight:500}
+.t-concept .ctile .ph{border-radius:12px;aspect-ratio:1/1}.t-concept .ct-name{font-weight:500;font-size:1.15rem;text-transform:none;letter-spacing:-.01em}.t-concept .ct-go{display:none}
+.t-concept .pcard{border:0;background:transparent;border-radius:0}.t-concept .pimg .ph{border-radius:12px;aspect-ratio:1/1}
+.t-concept .pbody{padding:12px 0 0}.t-concept .pbody .btn,.t-concept .instock{display:none}
+.t-concept .pbody h3{font-weight:500;font-size:1.05rem}.t-concept .price{font-weight:500;font-size:1.05rem}
+.t-concept .badge{background:#171717;font-weight:500;text-transform:none;letter-spacing:0;font-size:.74rem}
+.t-concept .itile{border:1px solid #171717;border-radius:12px;background:#fff}.t-concept .itile:hover{background:#171717;color:#fff}
+.t-concept .itile:hover .it-g{color:#fff}.t-concept .it-g{color:#171717}
+.t-concept .gband{background:#f6f6f6;color:#171717;border-radius:16px;margin:24px 20px;padding:clamp(32px,5vw,64px) 0}
+.t-concept .news{background:#171717;color:#fff}.t-concept .news .btn{background:#fff;color:#171717;border-color:#fff}.t-concept .ftr{background:#171717}
+.t-concept .rev{border:0;background:#f6f6f6}.t-concept .faq summary{font-weight:700}
+.t-concept .b-panel,.t-concept .b-sum{border-radius:16px;background:#fff}.t-concept .b-opts button{border-radius:12px}.t-concept .b-steps button{border-radius:999px}
+.t-concept .chero,.t-concept .ghero{background:#f6f6f6}.t-concept .srow strong{color:#171717}
 """
 
 CSS_RELEASE = r"""
-:root{--body:"Segoe UI","Helvetica Neue",Arial,sans-serif;--head:"Segoe UI","Helvetica Neue",Arial,sans-serif;--ls:0;--ink:#1d2b2f;--bg:#fff;--alt:#f3f8f8;--card:#fff;--line:#dbe6e7;--mute:#5c7075;
---accent:#0e7c86;--on-accent:#fff;--dark:#12343a;--hdr:#fff;--hdr-ink:#1d2b2f;--hdr-bd:1px solid #dbe6e7;--r:12px;--btt:none;--ntt:none;--ph1:#e1eeef;--ph2:#c6dcde;--ph-ink:#12343a}
-.hero-r{background:linear-gradient(180deg,#e9f4f5,#fff);padding:70px 0 54px;text-align:center}.hero-r p{max-width:620px;margin:0 auto 22px;color:var(--mute)}
-.hero-search{display:flex;gap:10px;max-width:560px;margin:0 auto 18px}.hero-search input{flex:1;padding:.9em 1.1em;border:1px solid #bfd3d5;border-radius:99px;font-size:1rem}.hero-search .btn{border-radius:99px}
-.chips{display:flex;gap:10px;flex-wrap:wrap;justify-content:center}.chips a{padding:.5em 1.1em;background:#fff;border:1px solid var(--line);border-radius:99px;text-decoration:none;font-weight:600;font-size:.9rem}.chips a:hover{border-color:var(--accent);color:var(--accent)}
-.t-release .btn{border-radius:99px}.t-release .pcard,.t-release .itile,.t-release .rev,.t-release .vt{box-shadow:0 2px 10px rgba(18,52,58,.06)}
-.t-release .pcard:hover{box-shadow:0 10px 26px rgba(18,52,58,.14)}.t-release .ph{border-radius:12px}.t-release .pimg .ph{border-radius:12px 12px 0 0}
-.t-release .logos{background:#fff}.t-release .gband{background:var(--dark)}
-.t-release .filters{display:block}
+:root{--body:Poppins,"Helvetica Neue",Arial,sans-serif;--head:Poppins,"Helvetica Neue",Arial,sans-serif;--ls:-.04em;--ink:#111;--bg:#fff;--alt:#f4f4f4;--card:#fff;--line:#e4e4e4;--mute:#707070;
+--accent:#111;--on-accent:#fff;--dark:#0d0d0d;--hdr:#fff;--hdr-ink:#111;--hdr-bd:0;--r:0px;--btt:uppercase;--ntt:uppercase;--ph1:#efefef;--ph2:#e2e2e2;--ph-ink:#111}
+.t-release h1,.t-release h2{font-weight:400;line-height:1.05}.t-release h2{font-size:clamp(2rem,4vw,2.9rem)}
+.t-release .btn{border-radius:0;font-size:.72rem;letter-spacing:.14em;font-weight:500;padding:1.05em 2.2em}
+.t-release .btn-ow{background:transparent;color:#fff;border-color:#fff}
+.t-release .eyebrow{color:inherit;opacity:.7;font-size:.66rem;letter-spacing:.24em;font-weight:500}
+.t-release .ann{background:#0d0d0d;color:#fff;text-transform:uppercase;font-size:.62rem;letter-spacing:.1em;font-weight:600;justify-content:space-around}
+.t-release .hdr-in{grid-template-columns:1fr auto 1fr;padding:22px 32px}.t-release .nav{justify-self:start}.t-release .hicons{justify-self:end}
+.t-release .nav>ul{gap:20px}.t-release .nav>ul>li>a{font-size:.66rem;letter-spacing:.1em;font-weight:500}
+.t-release .logo{align-items:center}.t-release .logo-a{font-size:2rem;font-weight:300;letter-spacing:-.04em;text-transform:lowercase}.t-release .logo-d{display:none}
+.t-release .cart span{background:#111;color:#fff}
+.t-release .hdr-over{background:transparent;color:#fff;position:absolute;top:auto;left:0;right:0;z-index:20}
+.t-release .hdr-over .cart span{background:#fff;color:#111}
+.hero-r{min-height:min(88vh,820px);display:flex;align-items:flex-end;justify-content:center;text-align:center;color:#fff;
+background:radial-gradient(ellipse at 50% 30%,#4a3f36 0%,#1d1815 45%,#0c0b0a 100%);padding:140px 20px 90px}
+.hero-r h1{font-size:clamp(2.6rem,6vw,4.4rem);color:#fff;margin:.2em 0 .7em}
+.t-release .pcard{border:0;background:transparent}.t-release .pimg .ph{aspect-ratio:4/5}.t-release .pbody{padding:12px 0 0}
+.t-release .pbody .btn,.t-release .instock{display:none}.t-release .pbody h3{font-weight:400;font-size:.85rem;letter-spacing:-.01em}.t-release .price{font-size:.85rem;font-weight:500}
+.t-release .badge{background:#111;border-radius:0;font-weight:500;font-size:.62rem}
+.t-release .ctile .ph{aspect-ratio:4/5}.t-release .ct-name{font-weight:400;font-size:1rem;letter-spacing:-.02em;text-transform:none}.t-release .ct-go{display:none}
+.t-release .sh{align-items:center}.t-release .more{color:#111;border-bottom:1px solid #111;font-size:.72rem;letter-spacing:.12em;text-transform:uppercase}
+.t-release .dtile .ph{aspect-ratio:3/2}.t-release .dt-copy{inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center}
+.t-release .dt-copy h2{color:#fff}.t-release .banner{min-height:560px}.t-release .banner h2{font-size:clamp(2.4rem,5vw,3.8rem);color:#fff}
+.t-release .callout h2{font-size:clamp(2.4rem,5vw,3.8rem)}.t-release .callout p{color:var(--mute)}
+.t-release .itile{background:#fff;border:0;border-bottom:1px solid #111;padding:22px 4px}.t-release .it-n{font-weight:400}
+.t-release .rev{border:0;background:#f4f4f4}.t-release .news{background:#111;color:#fff}.t-release .news .btn{background:#fff;color:#111;border-color:#fff}
+.t-release .ftr{background:#0d0d0d}.t-release .gband{background:#0d0d0d}.t-release .chero,.t-release .ghero{background:#f4f4f4}
+.t-release .b-panel,.t-release .b-sum{background:#fff}.t-release .srow strong{color:#111;font-weight:400}
 """
 
 CSS_PRESTIGE = r"""
-:root{--body:Georgia,"Times New Roman",serif;--head:Georgia,"Times New Roman",serif;--ls:.01em;--ink:#1c1a17;--bg:#faf8f4;--alt:#f1ede5;--card:#fff;--line:#e2dccf;--mute:#6f685b;
---accent:#9a7b3f;--on-accent:#fff;--dark:#171512;--hdr:#faf8f4;--hdr-ink:#1c1a17;--hdr-bd:1px solid #e2dccf;--r:0;--btt:uppercase;--ntt:uppercase;--ph1:#ebe5d8;--ph2:#d9d0bd;--ph-ink:#4a4130}
-h1,h2{font-weight:400}.t-prestige .btn{letter-spacing:.12em;font-size:.78rem;font-family:"Helvetica Neue",Arial,sans-serif}.t-prestige .eyebrow,.t-prestige .nav a,.t-prestige .util,.t-prestige .ctool,.t-prestige .pdim,.t-prestige .samp{font-family:"Helvetica Neue",Arial,sans-serif}
-.t-prestige .hdr-in{justify-content:center;text-align:center}.t-prestige .logo{align-items:center}.t-prestige .search{max-width:360px;flex:none}.t-prestige .nav>ul{justify-content:center}
-.t-prestige .nav>ul>li>a{font-size:.72rem;letter-spacing:.14em;font-family:"Helvetica Neue",Arial,sans-serif}
-.hero-p{background:var(--dark);color:#f4efe4;padding:clamp(90px,14vw,170px) 0;text-align:center}.hero-p h1{font-size:clamp(2.6rem,6vw,5rem);font-style:italic}.hero-p p{max-width:520px;margin:0 auto;color:#c9c1b0}.hero-p .ctas{justify-content:center}.hero-p .btn-o{color:#f4efe4;border-color:#f4efe4}
-.t-prestige .ph{aspect-ratio:3/4}.t-prestige .ph-wide{aspect-ratio:16/10}.t-prestige .ph-tall{aspect-ratio:4/5}.t-prestige .ph-g{aspect-ratio:1/1}.t-prestige .ph-b{aspect-ratio:3/2}
-.t-prestige .ctile .ct-name{font-weight:400;font-style:italic;font-size:1.3rem;text-transform:none}.t-prestige .pcard{border:0;background:transparent}.t-prestige .pbody{padding:12px 0}.t-prestige .pimg .ph{aspect-ratio:3/4}
-.t-prestige .itile{background:transparent;border-width:0 0 1px 0}.t-prestige .itiles{grid-template-columns:repeat(2,1fr);column-gap:50px}.t-prestige .badge{border-radius:0}
-.t-prestige .sh{border-bottom:1px solid var(--line);padding-bottom:14px}.t-prestige .rev{border:0;background:transparent;text-align:center;font-size:1.15rem;font-style:italic}
-.t-prestige .stats{background:transparent;border-color:var(--line)}.t-prestige .srow strong{font-weight:400}.t-prestige .news{background:var(--dark);color:#f4efe4}.t-prestige .news .btn{background:var(--accent);border-color:var(--accent)}
-.t-prestige .tiles{grid-template-columns:repeat(3,1fr);gap:30px}.t-prestige .vt,.t-prestige .b-panel,.t-prestige .b-sum,.t-prestige .form{border-radius:0}
+:root{--body:Nunito,"Helvetica Neue",Arial,sans-serif;--head:"Instrument Sans","Helvetica Neue",Arial,sans-serif;--ls:.18em;--ink:#1c1c1c;--bg:#efefef;--alt:#e6e6e6;--card:#f8f8f8;--line:#d6d6d6;--mute:#6a6a6a;
+--accent:#1c1c1c;--on-accent:#efefef;--dark:#1c1c1c;--hdr:#efefef;--hdr-ink:#1c1c1c;--hdr-bd:1px solid #dcdcdc;--r:0;--btt:none;--ntt:uppercase;--ph1:#e4e4e4;--ph2:#d2d2d2;--ph-ink:#1c1c1c}
+.t-prestige h1,.t-prestige h2,.t-prestige h3{font-weight:400;text-transform:uppercase}
+.t-prestige h2{font-size:clamp(1.2rem,2vw,1.6rem);letter-spacing:.18em;line-height:1.3}.t-prestige h3{font-size:.85rem;letter-spacing:.1em}
+.t-prestige .btn{border-radius:0;border-width:1px;font-weight:400;font-size:.85rem;letter-spacing:.05em;padding:1.05em 2.2em}
+.t-prestige .btn-lt{background:#efefef;color:#1c1c1c;border-color:#efefef}.t-prestige .btn-ow{background:transparent;color:#fff;border-color:#fff}
+.t-prestige .eyebrow{font-family:"Instrument Sans",sans-serif;font-weight:400;letter-spacing:.22em;font-size:.68rem;color:var(--mute)}
+.t-prestige .ann{background:#1c1c1c;color:#efefef;font-family:"Instrument Sans",sans-serif;text-transform:uppercase;letter-spacing:.12em;font-size:.68rem;justify-content:flex-start}
+.t-prestige .ann a{text-decoration:underline}
+.t-prestige .hdr-in{grid-template-columns:1fr auto 1fr;padding:18px 32px}.t-prestige .nav{justify-self:start}.t-prestige .hicons{justify-self:end}
+.t-prestige .nav>ul{gap:22px}.t-prestige .nav>ul>li>a{font-family:"Instrument Sans",sans-serif;font-size:.72rem;letter-spacing:.12em;font-weight:400}
+.t-prestige .logo{align-items:center}.t-prestige .logo-a{font-family:"Instrument Sans",sans-serif;font-weight:400;font-size:1.5rem;letter-spacing:.34em;margin-right:-.34em}
+.t-prestige .logo-d{font-size:.52rem;letter-spacing:.5em;margin-right:-.5em}.t-prestige .cart span{background:#1c1c1c;color:#efefef}
+.hero-p{min-height:min(88vh,768px);display:flex;align-items:center;justify-content:center;text-align:center;color:#fff;
+background:radial-gradient(ellipse at 50% 35%,#3a3a3a 0%,#161616 60%,#0b0b0b 100%);padding:100px 20px}
+.hero-p h1{font-size:clamp(1.6rem,3.6vw,2.6rem);letter-spacing:.2em;margin:0 0 1.4em;line-height:1.3}
+.t-prestige .sec{padding:clamp(56px,8vw,100px) 0}.t-prestige .sh{justify-content:center;text-align:center}
+.t-prestige .more{color:#1c1c1c;text-decoration:underline;font-family:"Instrument Sans",sans-serif;font-weight:400;letter-spacing:.08em}
+.t-prestige .pcard{border:0;background:transparent}.t-prestige .pimg .ph{aspect-ratio:3/4}.t-prestige .pbody{padding:14px 0 0;text-align:center}
+.t-prestige .pbody .btn,.t-prestige .instock,.t-prestige .sws{display:none}.t-prestige .prow{justify-content:center}
+.t-prestige .price{font-family:"Instrument Sans",sans-serif;font-size:.85rem;font-weight:400}.t-prestige .pdim{display:none}
+.t-prestige .badge{background:#1c1c1c;border-radius:0;font-weight:400;letter-spacing:.14em}
+.t-prestige .ctile .ph{aspect-ratio:3/4}.t-prestige .ct-name{font-family:"Instrument Sans",sans-serif;font-weight:400;font-size:.9rem;letter-spacing:.18em;text-align:center}
+.t-prestige .ct-go{display:none}.t-prestige .itile{background:transparent;border:0;border-bottom:1px solid #1c1c1c}.t-prestige .it-n{font-weight:400;letter-spacing:.1em;text-transform:uppercase;font-size:.9rem}
+.t-prestige .banner{min-height:480px;background:linear-gradient(135deg,#3a3a3a,#141414)}.t-prestige .banner h2{color:#fff}
+.t-prestige .rev{border:0;background:#f8f8f8}.t-prestige .news{background:#1c1c1c;color:#efefef}.t-prestige .news .btn{background:#efefef;color:#1c1c1c;border-color:#efefef}
+.t-prestige .ftr{background:#1c1c1c}.t-prestige .gband{background:#1c1c1c}.t-prestige .chero,.t-prestige .ghero{background:#e6e6e6}
+.t-prestige .faq summary{font-family:"Instrument Sans",sans-serif;font-weight:400;letter-spacing:.08em;text-transform:uppercase;font-size:.9rem}
+.t-prestige .srow strong{color:#1c1c1c;font-weight:400}.t-prestige .pimg{display:block}
 """
+
 
 # ----------------------------------------------------------------------------
 # Shared JS
@@ -710,15 +835,15 @@ th,td{padding:10px 12px;border-bottom:1px solid var(--line);text-align:left;vert
 </style></head><body><div class="w">
 <h1>AMKO Displays: three visual concepts</h1>
 <p class="lead">Static mockups for the redesign discussion, built from the SmartSites x Store Display kickoff call (13 Nov 2026) and the live amkodisplays.com. Each concept uses the same sample content so the client compares layout and feel, not copy.</p>
-<div class="warn"><strong>Read this first.</strong> These are not the real Shopify themes and not a build. They are HTML/CSS mockups styled after the layout feel of Concept, Release and Prestige. All prices, photos, stats, reviews and the gondola builder are SAMPLE or CONCEPT. The real build happens in Shopify once the client store exists.</div>
+<div class="warn"><strong>Read this first.</strong> These are not the real Shopify themes and not a build. They are HTML/CSS mockups modeled on each theme's public demo store (typography, colours, header, hero and section order), without the theme's code or photography. All prices, photos, stats, reviews and the gondola builder are SAMPLE or CONCEPT. The real build happens in Shopify once the client store exists.</div>
 <div class="cards">
 @@CARDS@@
 </div>
 <h2>How each concept answers the kickoff</h2>
 <table><tr><th>Client wish</th><th>Concept</th><th>Release</th><th>Prestige</th></tr>
-<tr><td>Modern look like Displayarama</td><td>Closest: bold type, heavy tiles, dark hero</td><td>Clean and friendly, rounded</td><td>Upscale, serif, calmer</td></tr>
+<tr><td>Modern look like Displayarama</td><td>Light and airy: Inter type, pill buttons, rounded photo slideshow</td><td>Editorial: transparent header over a full-bleed hero, light Poppins headlines</td><td>Quiet and architectural: spaced uppercase headings, square buttons</td></tr>
 <tr><td>Prices and details on the page, no quote form</td><td>Price on every card and product page</td><td>Same</td><td>Same</td></tr>
-<tr><td>Gondola configurator</td><td>Step builder mock on the gondola page</td><td>Same mock</td><td>Same mock</td></tr>
+<tr><td>Gondola configurator</td><td>Step builder mock, like the theme's bundle builder</td><td>Same mock</td><td>Same mock</td></tr>
 <tr><td>Shop by industry, free store layouts</td><td>Industry tiles and layout request form</td><td>Same</td><td>Same, list style</td></tr>
 <tr><td>New and trending products</td><td>Grid on home</td><td>Grid on home</td><td>Grid on home</td></tr>
 <tr><td>Palay-style detail and information</td><td>Spec table, accordions</td><td>Featured, Specials and New Arrivals pattern</td><td>Spec table, accordions</td></tr>
@@ -746,7 +871,7 @@ def main():
         d = os.path.join(out, key)
         os.makedirs(d)
         with open(os.path.join(d, "style.css"), "w", encoding="utf-8") as f:
-            f.write(css[key] + "\n" + BASE_CSS)
+            f.write(BASE_CSS + "\n" + EXTRA_CSS + "\n" + css[key])
         for fn, fnc in PAGES.items():
             with open(os.path.join(d, fn), "w", encoding="utf-8") as f:
                 f.write(fnc(key))
