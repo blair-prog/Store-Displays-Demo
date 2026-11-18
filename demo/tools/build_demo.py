@@ -43,7 +43,7 @@ NAV = [
     ("Gondola Shelving", "gondola.html", False),
     ("Custom Millwork &amp; Showcases", U + "/custom-millwork-showcases/", False),
     ("Shop by Industry", "industries.html", False),
-    ("Free Store Layouts", "industries.html#layouts", False),
+    ("Free Store Layouts", "layouts.html", False),
     ("Blog", U + "/blog/", False),
     ("About Us", "industries.html#about", False),
     ("Contact Us", "industries.html#contact", False),
@@ -80,7 +80,18 @@ CATEGORY_TILES = [
 ]
 
 # Industries from the live "Industries We Serve" page
-INDUSTRIES = ["Apparel Stores", "Beauty Supply Shops", "Jewelry Stores", "Liquor Stores", "Pharmacies", "Pop-Up Shops", "Smoke/Vape Shops", "Supermarkets"]
+# (slug, name, product kinds to show, intro line, intro is from the live site)
+IND = [
+    ("apparel-stores", "Apparel Stores", ["rack", "form", "slatwall"], "Stylish setups that captivate and convert.", True),
+    ("beauty-supply-shops", "Beauty Supply Shops", ["slatwall", "case"], "Sturdy and organized displays for beauty supplies.", True),
+    ("jewelry-stores", "Jewelry Stores", ["case", "form"], "Secure, well-lit showcases for high-ticket items.", False),
+    ("liquor-stores", "Liquor Stores", ["gondola", "slatwall"], "Robust gondola shelving built for heavy bottles.", False),
+    ("pharmacies", "Pharmacies", ["gondola", "case"], "Organized aisles and secure counters for health and beauty.", False),
+    ("pop-up-shops", "Pop-Up Shops", ["rack", "slatwall", "form"], "Quick-setup displays for temporary spaces.", False),
+    ("smoke-vape-shops", "Smoke/Vape Shops", ["case", "slatwall"], "Sleek showcases and slatwalls for an enhanced shopping experience.", True),
+    ("supermarkets", "Supermarkets", ["gondola"], "Organize your aisles with our robust gondola shelving options.", True),
+]
+INDUSTRIES = [x[1] for x in IND]
 
 IMG_STORE = UP + "2026/08/retail-systems-lg.jpg"
 IMG_CASES = UP + "2026/08/display-cases-lg.jpg"
@@ -204,7 +215,7 @@ def mega():
         lis = "".join('<li><a href="%s"%s>%s</a></li>' % (href(p), a_attrs(href(p)), l) for l, p in items)
         cols.append('<div class="mcol"><span class="mh">%s</span><ul>%s</ul></div>' % (title, lis))
     promo = ('<div class="mcol mpromo"><strong>Need help choosing?</strong><p>Call <a href="tel:%s">%s</a> or request a free layout plan.</p>'
-             '<a class="btn btn-sm" href="industries.html#layouts">Free layout plan</a></div>') % (PHONE_TEL, PHONE1)
+             '<a class="btn btn-sm" href="layouts.html">Free layout plan</a></div>') % (PHONE_TEL, PHONE1)
     return '<div class="mega" role="menu">%s%s</div>' % ("".join(cols), promo)
 
 
@@ -239,15 +250,15 @@ def header(theme, page):
     if theme == "concept":
         ann = ('<div class="ann"><span class="ann-l">f &nbsp; X &nbsp; ig &nbsp; yt</span>'
                '<span class="ann-m">&lsaquo;&nbsp; Order by 2 pm ET and Ground orders ship the same day &nbsp;&rsaquo;</span>'
-               '<span class="ann-r">English &middot; United States (USD $)</span></div>')
+               '<span class="ann-r"><a href="#" data-modal="ship">Calculate shipping</a> &middot; English &middot; USD $</span></div>')
         inner, cls = wordmark() + nav + icons, "hdr"
     elif theme == "release":
         ann = ('<div class="ann"><span>United States</span><span>Same-day shipping, order by 2 pm ET</span>'
-               '<span>Call %s</span><span>Volume discount pricing</span></div>') % PHONE1
+               '<span>Call %s</span><a href="#" data-modal="ship">Calculate shipping</a></div>') % PHONE1
         inner = nav + wordmark() + icons
         cls = "hdr hdr-over" if page == "index.html" else "hdr"
     else:
-        ann = '<div class="ann"><span>Same-day shipping on Ground orders placed by 2 pm ET</span><a href="industries.html#layouts">Free layout plan</a></div>'
+        ann = '<div class="ann"><span>Same-day shipping on Ground orders placed by 2 pm ET</span><span><a href="#" data-modal="ship">Calculate shipping</a> &nbsp;&middot;&nbsp; <a href="layouts.html">Free layout plan</a></span></div>'
         inner, cls = nav + wordmark() + icons, "hdr"
     return '%s%s<header class="%s"><div class="hdr-in">%s</div></header>' % (concept_bar(theme, page), ann, cls, inner)
 
@@ -259,15 +270,16 @@ def footer(theme):
                                            ("Slatwall", "/product-category/slatwall/"), ("Gridwall", "/product-category/gridwall/"),
                                            ("Apparel racks", "/product-category/apparel-racks/"), ("Mannequins", "/product-category/mannequins/")])
     info = "".join(ext(l, p) for l, p in [("About", "/about/"), ("Blog", "/blog/"), ("Contact", "/contact/"), ("FAQs", "/faqs/")])
+    info += '<li><a href="layouts.html">Free store layouts</a></li><li><a href="#" data-modal="ship">Calculate shipping</a></li>'
     pol = "".join(ext(l, p) for l, p in [("Volume discount pricing", "/volume-discount-pricing/"), ("Shipping policy", "/shipping-policy/"),
                                           ("Return policy", "/return-policy/"), ("Sitemap", "/sitemap/")])
-    return ('<footer class="ftr"><div class="wrap fgrid">'
+    return (('<footer class="ftr"><div class="wrap fgrid">'
             '<div><div class="logo logo-f"><img src="%s" alt="Store Displays" width="150" height="40"></div>'
             '<p>%s</p><p>Tel <a href="tel:%s">%s</a><br><a href="mailto:%s">%s</a></p></div>'
             '<div><h4>Shop</h4><ul>%s</ul></div><div><h4>Information</h4><ul>%s</ul></div><div><h4>Policies</h4><ul>%s</ul></div></div>'
             '<div class="wrap fine">Concept mockup for review only. Links, product names, SKUs, prices and images come from storedisplays.com; '
             'everything marked sample is not final. Not a live store.</div></footer>'
-            '<script src="../assets/app.js"></script></body></html>') % (LOGO, ADDRESS, PHONE_TEL, PHONE1, EMAIL, EMAIL, shop, info, pol)
+            '<script src="../assets/app.js"></script></body></html>') % (LOGO, ADDRESS, PHONE_TEL, PHONE1, EMAIL, EMAIL, shop, info, pol)).replace("<script src", modals() + "<script src", 1)
 
 
 def money(n):
@@ -348,13 +360,13 @@ def sec_dualtiles(theme):
 def sec_banner(theme):
     return ('<section class="banner"><div class="banner-copy"><span class="eyebrow">Free store layouts</span>'
             '<h2>Plan your store with our team</h2>'
-            '<a class="btn btn-ow" href="industries.html#layouts">Request your free layout plan</a></div></section>')
+            '<a class="btn btn-ow" href="layouts.html">Request your free layout plan</a></div></section>')
 
 
 def sec_callout(theme):
     return ('<section class="callout"><div class="wrap center-t"><h2>Volume discount pricing</h2>'
             '<p>Ordering more? See the live volume discount pricing page.</p>'
-            '<a class="btn" href="%s/volume-discount-pricing/" target="_blank" rel="noopener">See volume pricing</a></div></section>') % U
+            '<a class="btn" href="#" data-modal="bulk">Request bulk pricing</a> <a class="btn btn-o" href="%s/volume-discount-pricing/" target="_blank" rel="noopener">See volume pricing</a></div></section>') % U
 
 
 def sec_highlight(theme):
@@ -380,7 +392,7 @@ def sec_tiles(theme):
 
 
 def sec_industries(theme):
-    t = "".join('<a class="itile" href="industries.html"><span class="it-n">%s</span><span class="it-g">Shop fixtures &rarr;</span></a>' % i for i in INDUSTRIES)
+    t = "".join('<a class="itile" href="industry-%s.html"><span class="it-n">%s</span><span class="it-g">Shop fixtures &rarr;</span></a>' % (s, n) for s, n, _, _, _ in IND)
     return ('<section class="sec alt"><div class="wrap">%s<div class="itiles">%s</div>'
             '<p class="note">Industries come from the live Industries We Serve page. Dedicated industry pages are a concept.</p></div></section>'
             ) % (section_head("Find your store type", "Shop by industry", "industries.html"), t)
@@ -466,7 +478,7 @@ def builder():
             '<aside class="b-sum" aria-live="polite"><h3>Your run</h3><ul data-sum></ul>'
             '<div class="b-total"><span>Estimated total</span><strong data-total>$0</strong><small>SAMPLE pricing. The live site lists units from $107.</small></div>'
             '<a class="btn" href="industries.html#contact" data-cta>Request a quote (demo)</a>'
-            '<a class="btn btn-o" href="industries.html#layouts">Get a free layout plan</a></aside></div>')
+            '<a class="btn btn-o" href="layouts.html">Get a free layout plan</a></aside></div>')
 
 
 def page_gondola(theme):
@@ -493,7 +505,7 @@ def page_gondola(theme):
             '<p class="note">Specifications are from the live Gondola Shelving page.</p></div>'
             '<div class="seo"><h2>Maximizing vertical space</h2><p>Sample SEO copy. Taller gondola units show more product, as long as they stay accessible to customers. '
             'Single- and double-sided units, end units and upper shelves combine into runs that fit the store.</p>'
-            '<div class="ctas"><a class="btn" href="industries.html#contact">Get bulk pricing</a><a class="btn btn-o" href="industries.html#layouts">Request free layout</a></div></div></div>'
+            '<div class="ctas"><a class="btn" href="#" data-modal="bulk">Request bulk pricing</a><a class="btn btn-o" href="layouts.html">Request free layout</a></div></div></div>'
             '</div></section>'
             '<section class="sec alt"><div class="wrap narrow">' + section_head("Gondola FAQ", "Questions about gondola shelving", None) + faq_block() + '</div></section>')
     return head(theme, "Gondola Shelving") + header(theme, "gondola.html") + "<main>" + body + "</main>" + footer(theme)
@@ -552,7 +564,7 @@ def page_product(theme):
             '<fieldset class="opt"><legend>Size</legend>' + sizes + '</fieldset>'
             '<label class="opt">Quantity <input type="number" min="1" value="1" data-qty></label>'
             '<div class="ctas"><button class="btn" type="button" data-add>Add to cart (demo)</button>'
-            '<a class="btn btn-o" href="' + U + '/volume-discount-pricing/" target="_blank" rel="noopener">Volume pricing</a></div>'
+            '<a class="btn btn-o" href="#" data-modal="bulk">Request bulk pricing</a></div>'
             '<ul class="hl"><li>High-quality showcase with tempered glass finish</li><li>Maximum visibility, 2 rows of adjustable shelves</li>'
             '<li>Sleek black aluminum frame, 4" kick base</li><li>Sliding doors with key and lock</li><li>Easy assembly, built to last. Ships unassembled</li></ul>'
             '<details open><summary>Specifications</summary><table class="spec"><tr><th>4-foot size</th><td>48" x 20" x 38" (L x W x H)</td></tr>'
@@ -568,20 +580,14 @@ def page_product(theme):
 
 
 def page_industries(theme):
-    tiles = "".join('<a class="itile" href="%s/industries-we-serve/" target="_blank" rel="noopener"><span class="it-n">%s</span><span class="it-g">Shop fixtures &rarr;</span></a>' % (U, i) for i in INDUSTRIES)
-    steps = "".join('<li><strong>%s</strong><span>%s</span></li>' % x for x in [
-        ("Tell us about your store", "Store type, size and what you sell."), ("Share your floor plan", "Upload a sketch or photos."),
-        ("Get your layout", "Concept. Turnaround time to be confirmed.")])
+    tiles = "".join('<a class="itile" href="industry-%s.html"><span class="it-n">%s</span><span class="it-g">Shop fixtures &rarr;</span></a>' % (s, n) for s, n, _, _, _ in IND)
     body = (crumbs('<a href="index.html">Home</a>', "Shop by industry") +
             '<section class="chero"><div class="wrap"><span class="eyebrow">Industries served by Store Displays&reg;</span><h1>Shop by Industry</h1>'
             '<p>Find fixtures for your store type. The live site lists these industries on its Industries We Serve page; dedicated industry pages double as SEO landing pages in this concept.</p></div></section>'
             + sec_stats(theme) +
-            '<section class="sec"><div class="wrap"><div class="itiles">' + tiles + '</div><p class="note">Tiles link to the live Industries We Serve page.</p></div></section>'
-            '<section class="sec alt" id="layouts"><div class="wrap split"><div><span class="eyebrow">Free store layouts</span><h2>Request your free layout plan</h2>'
-            '<ol class="steps">' + steps + '</ol></div>'
-            '<form class="form" onsubmit="this.querySelector(\'button\').textContent=\'Thanks (demo)\';return false">'
-            '<label>Name<input required></label><label>Email<input type="email" required></label><label>Store type<select><option>Apparel store</option><option>Beauty supply shop</option><option>Jewelry store</option><option>Liquor store</option><option>Pharmacy</option><option>Smoke/vape shop</option><option>Supermarket</option><option>Other</option></select></label>'
-            '<label>Tell us about your space<textarea rows="3"></textarea></label><button class="btn">Request layout (demo)</button></form></div></section>'
+            '<section class="sec"><div class="wrap"><div class="itiles">' + tiles + '</div><p class="note">Each tile opens a concept industry page. The live site lists the same industries on its Industries We Serve page.</p></div></section>'
+            '<section class="sec alt"><div class="wrap center-t"><span class="eyebrow">Free store layouts</span><h2>Not sure what your store needs?</h2>'
+            '<p>Request a free layout plan or book a call with our team.</p><a class="btn" href="layouts.html">Free store layouts</a></div></section>'
             '<section class="sec" id="custom"><div class="wrap split">' + pic(UP + "2026/08/glass-wood-cubby-display-lg.jpg", "Glass and wooden display", "ph-tall", "cover") +
             '<div><span class="eyebrow">Custom millwork &amp; showcases</span><h2>Custom showcases and millwork</h2>'
             '<p>The live site has a Custom Millwork &amp; Showcases page. Final copy for this section comes from the client.</p>'
@@ -595,8 +601,77 @@ def page_industries(theme):
             '<label>Email<input type="email" required></label><label>Message<textarea rows="3"></textarea></label><button class="btn">Send (demo)</button></form></div></section>')
     return head(theme, "Shop by Industry") + header(theme, "industries.html") + "<main>" + body + "</main>" + footer(theme)
 
+def modals():
+    return ('<div class="modal" id="m-ship" hidden role="dialog" aria-modal="true" aria-label="Calculate shipping"><div class="modal-box">'
+            '<button class="modal-close" data-close aria-label="Close">&times;</button><h2>Calculate shipping</h2>'
+            '<p class="note">Concept. East, Central and West zones were discussed on the kickoff call. Rates here are SAMPLE.</p>'
+            '<form class="form" data-ship><label>ZIP code<input inputmode="numeric" maxlength="5" placeholder="07074" required></label>'
+            '<label>Estimated order weight (lb)<input type="number" min="1" value="150"></label><button class="btn">Estimate</button></form>'
+            '<div class="ship-out" data-ship-out hidden></div></div></div>'
+            '<div class="modal" id="m-bulk" hidden role="dialog" aria-modal="true" aria-label="Request bulk pricing"><div class="modal-box">'
+            '<button class="modal-close" data-close aria-label="Close">&times;</button><h2>Request bulk pricing</h2>'
+            '<p class="note">Concept of the Get Bulk Pricing form on Displayarama. The live site also has a Volume Discount Pricing page.</p>'
+            '<form class="form"><label>Name<input required></label><label>Email<input type="email" required></label>'
+            '<label>What are you ordering?<input placeholder="e.g. 4 gondola runs"></label><label>Quantity<input type="number" min="1" value="10"></label>'
+            '<button class="btn">Request bulk pricing (demo)</button></form></div></div>'
+            '<div class="modal" id="m-pop" hidden role="dialog" aria-modal="true" aria-label="Newsletter"><div class="modal-box">'
+            '<button class="modal-close" data-close aria-label="Close">&times;</button><h2>Sign up and get 10% off your first order</h2>'
+            '<p class="note">Concept of the newsletter capture discussed on the kickoff call. Final offer and terms to be confirmed.</p>'
+            '<form class="form"><label>Email<input type="email" required></label><button class="btn">Get my 10% off (demo)</button></form></div></div>')
+
+
+def page_layouts(theme):
+    steps = "".join('<li><strong>%s</strong><span>%s</span></li>' % x for x in [
+        ("Tell us about your store", "Store type, size and what you sell."), ("Share your floor plan", "Upload a sketch or photos."),
+        ("Get your layout", "Concept. Turnaround time to be confirmed.")])
+    types = "".join("<option>%s</option>" % n for n in INDUSTRIES) + "<option>Other</option>"
+    tiles = "".join('<a class="itile" href="industry-%s.html"><span class="it-n">%s</span><span class="it-g">Shop fixtures &rarr;</span></a>' % (s, n) for s, n, _, _, _ in IND)
+    done = "this.querySelector('button').textContent='Thanks (demo)';return false"
+    body = (crumbs('<a href="index.html">Home</a>', "Free store layouts") +
+            '<section class="chero"><div class="wrap"><span class="eyebrow">Free store layouts</span><h1>Free Store Layouts</h1>'
+            '<p>Concept page for the free layout service the client liked on Displayarama. Request a layout plan, or book a call or a showroom visit.</p></div></section>'
+            '<section class="sec"><div class="wrap split"><div><h2>How it works</h2><ol class="steps">' + steps + '</ol></div>'
+            '<form class="form" onsubmit="' + done + '"><label>Name<input required></label><label>Email<input type="email" required></label>'
+            '<label>Store type<select>' + types + '</select></label><label>Store size (sq ft)<input type="number" min="1"></label>'
+            '<label>Tell us about your space<textarea rows="3"></textarea></label><button class="btn">Request layout (demo)</button></form></div></section>'
+            '<section class="sec alt" id="book"><div class="wrap"><div class="sh"><div><span class="eyebrow">Appointment scheduling</span>'
+            '<h2>Book a layout call or showroom visit</h2></div></div><div class="book" data-book><div>'
+            '<h3>1. What would you like?</h3><div class="bk-types" data-bk-types></div><h3>2. Pick a day</h3><div class="bk-days" data-bk-days></div>'
+            '<h3>3. Pick a time</h3><div class="bk-times" data-bk-times></div></div><div><h3>Your appointment</h3>'
+            '<div class="bk-conf" data-bk-out hidden></div><form class="form" onsubmit="' + done + '"><label>Name<input required></label>'
+            '<label>Email<input type="email" required></label><label>Phone<input type="tel"></label><button class="btn">Confirm booking (demo)</button></form>'
+            '<p class="note">Showroom: ' + ADDRESS + '. Availability is SAMPLE. Real scheduling needs a booking app.</p></div></div></div></section>'
+            '<section class="sec"><div class="wrap">' + section_head("Plans by store type", "We plan for every kind of store", "industries.html") +
+            '<div class="itiles">' + tiles + '</div></div></section>'
+            '<section class="sec alt"><div class="wrap narrow">' + section_head("FAQ", "Layout questions", None) + faq_block(FAQ[1:3]) + '</div></section>')
+    return head(theme, "Free Store Layouts") + header(theme, "layouts.html") + "<main>" + body + "</main>" + footer(theme)
+
+
+def page_industry(theme, slug):
+    _, name, kinds, blurb, real = next(x for x in IND if x[0] == slug)
+    prods = [p for p in PRODUCTS if p["kind"] in kinds]
+    page = "industry-%s.html" % slug
+    check = "".join("<li>%s</li>" % x for x in [
+        "A free layout plan for your floor", "Fixtures sized to your space and merchandise",
+        "Volume discount pricing on larger orders", "Same-day shipping on Ground orders placed by 2 pm ET"])
+    body = (crumbs('<a href="index.html">Home</a>', '<a href="industries.html">Shop by industry</a>', name) +
+            '<section class="chero"><div class="wrap"><span class="eyebrow">Shop by industry</span><h1>Store Displays for ' + name + '</h1>'
+            '<p>' + blurb + '</p><p class="note">' + ("Intro line is from the live site." if real else "Intro line is sample copy.") +
+            ' Industry pages are a concept: they would double as SEO landing pages linked to products and blog posts.</p>'
+            '<div class="ctas"><a class="btn" href="layouts.html">Free layout plan</a><a class="btn btn-o" href="#" data-modal="bulk">Request bulk pricing</a></div></div></section>'
+            '<section class="sec"><div class="wrap">' + section_head("Recommended for " + name.lower(), "Popular fixtures", "collection.html") +
+            grid(prods, theme, 4) + '</div></section>'
+            '<section class="sec alt"><div class="wrap split"><div><span class="eyebrow">What you get</span><h2>Everything for your ' + name.lower() + '</h2>'
+            '<ul class="hl">' + check + '</ul><div class="ctas"><a class="btn" href="layouts.html#book">Book a call</a></div></div>'
+            + pic(GALLERY[0], "Store displays", "ph-wide", "cover") + '</div></section>'
+            '<section class="sec"><div class="wrap narrow">' + section_head("FAQ", "Questions from " + name.lower(), None) + faq_block(FAQ[:3]) + '</div></section>')
+    return head(theme, "Store Displays for " + name) + header(theme, page) + "<main>" + body + "</main>" + footer(theme)
+
+
 PAGES = {"index.html": page_home, "gondola.html": page_gondola, "collection.html": page_collection,
-         "product.html": page_product, "industries.html": page_industries}
+         "product.html": page_product, "industries.html": page_industries, "layouts.html": page_layouts}
+for _s, _n, _k, _b, _r in IND:
+    PAGES["industry-%s.html" % _s] = (lambda t, s=_s: page_industry(t, s))
 
 # ----------------------------------------------------------------------------
 # CSS: shared base + per-theme tokens/overrides
@@ -718,6 +793,16 @@ EXTRA_CSS = r"""
 .logo img{height:34px;width:auto;display:block}.ftr .logo img{filter:brightness(0) invert(1)}.t-release .hdr-over .logo img{filter:brightness(0) invert(1)}
 .mh{display:block}.sw-silver{background:linear-gradient(135deg,#f2f4f6,#aab2b8)}.sw-bronze{background:#8c6a43}.sw-cream{background:#f1e8d3}.sw-antique-white{background:#eee6d2}.sw-glass{background:rgba(180,210,230,.5)}
 .spec-split{align-items:start;margin-top:40px}.spec-split .seo{margin-top:0}
+.modal{position:fixed;inset:0;z-index:200;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.55);padding:20px}.modal[hidden]{display:none}
+.modal-box{background:var(--bg);color:var(--ink);max-width:460px;width:100%;padding:28px;border-radius:var(--r);position:relative;max-height:90vh;overflow:auto}
+.modal-close{position:absolute;top:8px;right:14px;border:0;background:none;font-size:1.7rem;cursor:pointer;color:inherit;line-height:1}
+.modal-box h2{font-size:1.4rem;text-transform:none;letter-spacing:0;margin-bottom:.4em;padding-right:24px}.modal-box .form{border:0;padding:0;background:none}
+.ship-out{margin-top:14px;padding:14px;background:var(--alt);border-radius:var(--r);font-size:.92rem}.ann a{color:inherit}
+.book{display:grid;grid-template-columns:1.1fr 1fr;gap:32px}.book h3{margin:.2em 0 .6em;font-size:1rem}
+.bk-types,.bk-days,.bk-times{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:18px}
+.bk-types button,.bk-days button,.bk-times button{border:1px solid var(--line);background:var(--card);padding:.6em .9em;border-radius:var(--r);cursor:pointer;font-family:inherit;font-size:.88rem;color:inherit}
+.bk-sel{border-color:var(--accent)!important;box-shadow:0 0 0 1px var(--accent);font-weight:700}.bk-conf{padding:14px;background:var(--alt);border-radius:var(--r);margin-bottom:14px}
+@media(max-width:980px){.book{grid-template-columns:1fr}}
 @media(max-width:980px){.dual-g{grid-template-columns:1fr}.hdr-in{grid-template-columns:1fr auto;gap:12px}.nav{grid-column:1/-1;order:5}}
 """
 
@@ -893,6 +978,43 @@ if(fl){
   fl.addEventListener('change',apply);sel.addEventListener('change',apply);
   document.querySelector('[data-clear]').onclick=function(){[].forEach.call(fl.querySelectorAll('input'),function(x){x.checked=x.dataset.f==='price'&&x.value===''});apply()};
 }
+/* Modals: shipping estimate, bulk pricing, newsletter popup (SAMPLE rates and offer) */
+var openM=function(id){var m=document.getElementById('m-'+id);if(m){m.hidden=false;var f=m.querySelector('input');if(f)f.focus()}};
+var closeM=function(){[].forEach.call(document.querySelectorAll('.modal'),function(m){m.hidden=true})};
+document.addEventListener('click',function(e){var t=e.target.closest('[data-modal]');if(t){e.preventDefault();closeM();openM(t.dataset.modal);return}
+  if(e.target.closest('[data-close]')||e.target.classList.contains('modal'))closeM()});
+document.addEventListener('keydown',function(e){if(e.key==='Escape')closeM()});
+var shipF=document.querySelector('[data-ship]');
+if(shipF){shipF.addEventListener('submit',function(e){e.preventDefault();
+  var z=shipF.querySelector('input').value.trim(),lb=+shipF.querySelector('input[type=number]').value||1,out=document.querySelector('[data-ship-out]');out.hidden=false;
+  if(!/^\d{5}$/.test(z)){out.textContent='Enter a 5-digit ZIP code.';return}
+  var n=+z.slice(0,3),d=+z[0];
+  if((n>=967&&n<=968)||(n>=995&&n<=999)){out.textContent='Sample rule: this concept does not ship to Alaska or Hawaii.';return}
+  var reg=d<=3?'East':d<=7?'Central':'West',f=reg==='East'?1:reg==='Central'?1.25:1.6,ltl=lb>=150;
+  var est=ltl?Math.round((120+0.9*lb)*f):Math.round((14+0.28*lb)*f);
+  out.innerHTML='<strong>'+reg+' zone, '+(ltl?'LTL freight':'Ground')+'</strong><br>Estimated shipping: '+money(est)+' <small>(SAMPLE rate)</small><br>'+(ltl?'LTL orders ship the next day.':'Order by 2 pm ET and Ground orders ship the same day.')})}
+[].forEach.call(document.querySelectorAll('.modal form:not([data-ship])'),function(f){f.addEventListener('submit',function(e){e.preventDefault();var b=f.querySelector('button');b.textContent='Thanks (demo)';b.disabled=true})});
+if(document.querySelector('.hero-c,.hero-r,.hero-p')){try{if(!sessionStorage.getItem('sd-pop')){setTimeout(function(){if(!document.querySelector('.modal:not([hidden])')){openM('pop');sessionStorage.setItem('sd-pop','1')}},6000)}}catch(e){}}
+/* Appointment booking (SAMPLE availability, demo only) */
+var bk=document.querySelector('[data-book]');
+if(bk){
+  var type='Free layout call',day=null,time=null,days=[],dt=new Date();
+  while(days.length<7){dt.setDate(dt.getDate()+1);if(dt.getDay()%6)days.push(new Date(dt))}
+  var times=['9:00 AM','10:30 AM','12:00 PM','1:30 PM','3:00 PM','4:30 PM'];
+  var fmt=function(x){return x.toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'})};
+  var bout=bk.querySelector('[data-bk-out]');
+  var draw=function(){
+    var t=bk.querySelector('[data-bk-types]'),dd=bk.querySelector('[data-bk-days]'),tt=bk.querySelector('[data-bk-times]');
+    var mk=function(host,label,on,fn){var b=document.createElement('button');b.type='button';b.textContent=label;if(on)b.className='bk-sel';b.onclick=fn;host.appendChild(b)};
+    t.innerHTML='';dd.innerHTML='';tt.innerHTML='';
+    ['Free layout call','Showroom visit'].forEach(function(x){mk(t,x,x===type,function(){type=x;draw()})});
+    days.forEach(function(x,i){mk(dd,fmt(x),day===i,function(){day=i;draw()})});
+    times.forEach(function(x){mk(tt,x+' ET',time===x,function(){time=x;draw()})});
+    bout.hidden=!(day!==null&&time);
+    if(!bout.hidden)bout.innerHTML='<strong>'+type+'</strong><br>'+fmt(days[day])+' at '+time+' ET (SAMPLE availability, demo only)';
+  };
+  draw();
+}
 /* Product page */
 var pp=document.querySelector('[data-price]'),qty=document.querySelector('[data-qty]');
 if(pp&&qty){
@@ -936,8 +1058,13 @@ th,td{padding:10px 12px;border-bottom:1px solid var(--line);text-align:left;vert
 <tr><td>New and trending products</td><td>Grid on home</td><td>Grid on home</td><td>Grid on home</td></tr>
 <tr><td>Palay-style detail and information</td><td>Spec table, accordions</td><td>Featured, Specials and New Arrivals pattern</td><td>Spec table, accordions</td></tr>
 <tr><td>Colors variants, not 360 categories</td><td>Swatch filters and finish selector</td><td>Same</td><td>Same</td></tr>
+<tr><td>Free store layouts and appointment scheduling</td><td>Dedicated page with a booking widget</td><td>Same</td><td>Same</td></tr>
+<tr><td>Calculate shipping (regional zones)</td><td>ZIP-based zone estimate, sample rates</td><td>Same</td><td>Same</td></tr>
+<tr><td>Bulk and volume pricing</td><td>Request form, plus the live volume pricing page</td><td>Same</td><td>Same</td></tr>
+<tr><td>Shop by industry pages</td><td>8 concept industry pages with recommended products</td><td>Same</td><td>Same</td></tr>
+<tr><td>10% newsletter capture</td><td>Popup and a footer band</td><td>Same</td><td>Same</td></tr>
 </table>
-<p class="lead" style="margin-top:22px">Still to do for the real build: confirm the 5 non-ecommerce pages and industry list from the workbook, the client's new logo and colors, a real configurator (app or custom code), appointment booking if wanted, quantity pricing (marked Plus on the theme pages, needs checking), and the shipping zone approach.</p>
+<p class="lead" style="margin-top:22px">Still to do for the real build: confirm the 5 non-ecommerce pages and industry list from the workbook, the client's new logo and colors, a real configurator (app or custom code), a real booking tool for appointments, quantity pricing (marked Plus on the theme pages, needs checking), and the shipping zone approach.</p>
 </div></body></html>"""
 
 # ----------------------------------------------------------------------------
@@ -964,7 +1091,7 @@ def main():
             with open(os.path.join(d, fn), "w", encoding="utf-8") as f:
                 f.write(fnc(key))
         pg = "".join('<a href="%s/%s">%s</a>' % (key, fn, lbl) for fn, lbl in
-                     [("index.html", "Home"), ("gondola.html", "Gondola"), ("collection.html", "Collection"), ("product.html", "Product"), ("industries.html", "Industry")])
+                     [("index.html", "Home"), ("gondola.html", "Gondola"), ("collection.html", "Collection"), ("product.html", "Product"), ("industries.html", "Industry"), ("layouts.html", "Layouts"), ("industry-liquor-stores.html", "Industry page")])
         cards.append('<div class="c"><h2>%s</h2><p>%s</p><div class="pg">%s</div><a class="b" href="%s/index.html">Open %s concept</a></div>'
                      % (t["name"], t["tag"], pg, key, t["name"]))
     with open(os.path.join(out, "index.html"), "w", encoding="utf-8") as f:

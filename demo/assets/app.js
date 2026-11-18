@@ -65,6 +65,43 @@ if(fl){
   fl.addEventListener('change',apply);sel.addEventListener('change',apply);
   document.querySelector('[data-clear]').onclick=function(){[].forEach.call(fl.querySelectorAll('input'),function(x){x.checked=x.dataset.f==='price'&&x.value===''});apply()};
 }
+/* Modals: shipping estimate, bulk pricing, newsletter popup (SAMPLE rates and offer) */
+var openM=function(id){var m=document.getElementById('m-'+id);if(m){m.hidden=false;var f=m.querySelector('input');if(f)f.focus()}};
+var closeM=function(){[].forEach.call(document.querySelectorAll('.modal'),function(m){m.hidden=true})};
+document.addEventListener('click',function(e){var t=e.target.closest('[data-modal]');if(t){e.preventDefault();closeM();openM(t.dataset.modal);return}
+  if(e.target.closest('[data-close]')||e.target.classList.contains('modal'))closeM()});
+document.addEventListener('keydown',function(e){if(e.key==='Escape')closeM()});
+var shipF=document.querySelector('[data-ship]');
+if(shipF){shipF.addEventListener('submit',function(e){e.preventDefault();
+  var z=shipF.querySelector('input').value.trim(),lb=+shipF.querySelector('input[type=number]').value||1,out=document.querySelector('[data-ship-out]');out.hidden=false;
+  if(!/^\d{5}$/.test(z)){out.textContent='Enter a 5-digit ZIP code.';return}
+  var n=+z.slice(0,3),d=+z[0];
+  if((n>=967&&n<=968)||(n>=995&&n<=999)){out.textContent='Sample rule: this concept does not ship to Alaska or Hawaii.';return}
+  var reg=d<=3?'East':d<=7?'Central':'West',f=reg==='East'?1:reg==='Central'?1.25:1.6,ltl=lb>=150;
+  var est=ltl?Math.round((120+0.9*lb)*f):Math.round((14+0.28*lb)*f);
+  out.innerHTML='<strong>'+reg+' zone, '+(ltl?'LTL freight':'Ground')+'</strong><br>Estimated shipping: '+money(est)+' <small>(SAMPLE rate)</small><br>'+(ltl?'LTL orders ship the next day.':'Order by 2 pm ET and Ground orders ship the same day.')})}
+[].forEach.call(document.querySelectorAll('.modal form:not([data-ship])'),function(f){f.addEventListener('submit',function(e){e.preventDefault();var b=f.querySelector('button');b.textContent='Thanks (demo)';b.disabled=true})});
+if(document.querySelector('.hero-c,.hero-r,.hero-p')){try{if(!sessionStorage.getItem('sd-pop')){setTimeout(function(){if(!document.querySelector('.modal:not([hidden])')){openM('pop');sessionStorage.setItem('sd-pop','1')}},6000)}}catch(e){}}
+/* Appointment booking (SAMPLE availability, demo only) */
+var bk=document.querySelector('[data-book]');
+if(bk){
+  var type='Free layout call',day=null,time=null,days=[],dt=new Date();
+  while(days.length<7){dt.setDate(dt.getDate()+1);if(dt.getDay()%6)days.push(new Date(dt))}
+  var times=['9:00 AM','10:30 AM','12:00 PM','1:30 PM','3:00 PM','4:30 PM'];
+  var fmt=function(x){return x.toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'})};
+  var bout=bk.querySelector('[data-bk-out]');
+  var draw=function(){
+    var t=bk.querySelector('[data-bk-types]'),dd=bk.querySelector('[data-bk-days]'),tt=bk.querySelector('[data-bk-times]');
+    var mk=function(host,label,on,fn){var b=document.createElement('button');b.type='button';b.textContent=label;if(on)b.className='bk-sel';b.onclick=fn;host.appendChild(b)};
+    t.innerHTML='';dd.innerHTML='';tt.innerHTML='';
+    ['Free layout call','Showroom visit'].forEach(function(x){mk(t,x,x===type,function(){type=x;draw()})});
+    days.forEach(function(x,i){mk(dd,fmt(x),day===i,function(){day=i;draw()})});
+    times.forEach(function(x){mk(tt,x+' ET',time===x,function(){time=x;draw()})});
+    bout.hidden=!(day!==null&&time);
+    if(!bout.hidden)bout.innerHTML='<strong>'+type+'</strong><br>'+fmt(days[day])+' at '+time+' ET (SAMPLE availability, demo only)';
+  };
+  draw();
+}
 /* Product page */
 var pp=document.querySelector('[data-price]'),qty=document.querySelector('[data-qty]');
 if(pp&&qty){

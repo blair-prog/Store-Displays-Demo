@@ -38,14 +38,31 @@ Content is taken from storedisplays.com so the concepts look like this client's 
 
 If a live URL changes or hot-linking is blocked, the images in the demo will break.
 
+## Features requested on the kickoff call
+
+These are the features the client asked for or liked on competitor sites (Displayarama, Palay Display). All of
+them are concepts with sample data unless noted:
+
+- **Shop by Industry:** a hub plus 8 industry pages, each with recommended products, a checklist and FAQ.
+- **Free store layouts:** a dedicated page with a request form.
+- **Appointment scheduling:** a booking widget (layout call or showroom visit) with sample availability.
+- **Gondola configurator:** a step-by-step builder using the live site's real unit options, sample pricing.
+- **Direct pricing:** prices on every card and product page, replacing request-for-quote.
+- **Calculate shipping:** a ZIP-based East / Central / West estimate with sample rates (the regional matrix
+  discussed on the call). It refuses Alaska and Hawaii.
+- **Bulk and volume pricing:** a request form, plus a link to the live Volume Discount Pricing page.
+- **New and trending products**, **color and size as variants**, and a **10% newsletter capture** (popup and band).
+
+The real build needs apps or custom code for the configurator, booking, shipping zones and bulk pricing.
+
 ## Pages (same in each concept)
 
 `index.html` home, `gondola.html` gondola landing page with the builder, `collection.html` filters, sort and
-product grid, `product.html` product page, `industries.html` Shop by Industry plus anchors for Free Store
-Layouts, Custom Millwork, About and Contact.
+product grid, `product.html` product page, `industries.html` Shop by Industry hub, `layouts.html` free store
+layouts and booking, and `industry-<name>.html` for each of the 8 industries.
 
-In the real build these anchored sections would be separate pages. The scope allows up to five
-non-ecommerce pages, to be confirmed against the workbook.
+The scope allows up to five non-ecommerce pages, to be confirmed against the workbook. These demos show more,
+so the page list in the real build needs agreeing.
 
 ## Run locally
 
@@ -72,5 +89,5 @@ python demo/tools/build_demo.py demo
 - Gondola configurator: app or custom code. The live gondola page is a quote form today.
 - Quantity pricing is marked "Plus" on the theme pages. Check whether it needs Shopify Plus.
 - Shipping zones (East / West / Central) and the shipping app.
-- Appointment booking, if wanted. It was mentioned on the call but not on the reference site.
+- Appointment booking tool: it was mentioned on the call but is on neither reference site, so it is the least proven idea.
 - Compare against the real themes once the Shopify dev store exists.
