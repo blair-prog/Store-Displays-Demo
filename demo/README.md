@@ -29,14 +29,13 @@ Content is taken from storedisplays.com so the concepts look like this client's 
 - **Links:** the main menu labels, the mega menu (the live site's categories), policies, blog, FAQs, volume
   discount pricing, Industries We Serve, Custom Millwork & Showcases. Deeper links open the live site in a new tab.
 - **Products:** 16 products with real names, SKUs and listing prices (gondola units other than "from $107" are sample).
-- **Images:** the logo, the category tiles, product photos and gondola unit photos are **hot-linked from
-  storedisplays.com**, not copied into this repo. Before any real use they should be replaced with local files.
+- **Images:** downloaded from storedisplays.com at the highest resolution the site serves and saved in `assets/img/` (44 files, about 13 MB): the logo, the home hero banner (2560 px wide), eight industry photos (about 2360 px square), product photos (900 px) and the gondola photos. They are the client's own photography; confirm usage rights before publishing anywhere public. A few category images on the live site are only 430 px wide, so the demos do not use them at large sizes.
 - **Gondola options:** unit types, lengths, heights, colors and shelf capacity follow the live Gondola Shelving page.
 - **Product page:** the 4′ Black Standard Extra Vision Display Case (ESC4/B) page uses its real features,
   specifications and variation options. Option prices are partly sample.
 - **Contact:** the address, phone (201) 935-2929 and info@storedisplays.com.
 
-If a live URL changes or hot-linking is blocked, the images in the demo will break.
+Product, category, policy and blog links still open the live storedisplays.com in a new tab.
 
 ## Features requested on the kickoff call
 
@@ -52,8 +51,21 @@ them are concepts with sample data unless noted:
   discussed on the call). It refuses Alaska and Hawaii.
 - **Bulk and volume pricing:** a request form, plus a link to the live Volume Discount Pricing page.
 - **New and trending products**, **color and size as variants**, and a **10% newsletter capture** (popup and band).
+- **Concept-only interactions** (modeled on the Concept demo): a rotating hero slideshow, pill-style nav with card mega menus for products and industries, industry photo cards whose plus button opens a description on hover, quick add on product cards, and pill buttons that invert on hover.
 
 The real build needs apps or custom code for the configurator, booking, shipping zones and bulk pricing.
+
+## SEO layer
+
+Draft strategy built into every page, with an **SEO view** button (bottom left) that opens a panel for the current page and outlines its headings:
+
+- Unique title tag and meta description per page, kept within the usual length guidance, plus a primary keyword and secondary keywords.
+- JSON-LD schema: Organization and WebSite on the home page, Product on the product page, BreadcrumbList, FAQPage and ItemList where they apply.
+- Product-matched H1s, an intro above each product grid and buying-guide content below it, as agreed on the kickoff call.
+- Eight industry landing pages with their own copy, FAQ and internal links, a crawlable block of popular searches taken from the live home page, and related live blog posts.
+- Descriptive alt text on every image.
+
+All SEO copy is draft wording for review. It has not been through keyword research.
 
 ## Pages (same in each concept)
 
@@ -72,7 +84,7 @@ No build step. Serve the folder, for example from the repo root:
 python -m http.server 8765 --directory demo
 ```
 
-then open http://localhost:8765/. The page needs internet access for the hot-linked images and web fonts.
+then open http://localhost:8765/. The page needs internet access only for the web fonts; images are local.
 
 ## Regenerate
 

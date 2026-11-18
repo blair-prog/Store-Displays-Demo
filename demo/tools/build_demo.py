@@ -8,6 +8,8 @@ Usage: build_demo.py [OUTPUT_DIR]   (default: ./demo)
 """
 import argparse
 import html
+import json
+import re
 import os
 import shutil
 
@@ -19,14 +21,32 @@ PHONE_TEL = "2019352929"
 EMAIL = "info@storedisplays.com"
 ADDRESS = "7 Purcell Ct., Moonachie, NJ 07074"
 U = "https://storedisplays.com"
-LOGO = U + "/wp-content/uploads/2025/09/sd-logo.png"
 UP = "/wp-content/uploads/"
+LOCAL = set()  # filenames found in <out>/assets/img, filled in by main()
 
 # Internal mock pages stand in for these real storedisplays.com paths. Everything else links to the live site.
 MOCK = {
     "/gondola-shelving/": "gondola.html", "/shop/": "collection.html", "/product-category/counters-showcases/": "collection.html",
     "/industries-we-serve/": "industries.html", "/contact/": "industries.html#contact", "/about/": "industries.html#about",
 }
+
+
+def local_name(path):
+    base = os.path.basename(path)
+    orig = re.sub(r"-\d+x\d+(?=\.\w+$)", "", base)
+    for cand in (orig, base):
+        if cand in LOCAL:
+            return cand
+    return None
+
+
+def img_src(path):
+    ln = local_name(path)
+    if ln:
+        return "../assets/img/" + ln
+    if path.startswith("http"):
+        return path
+    return U + (path if path.startswith("/") else UP + path)
 
 
 def href(path):
@@ -37,19 +57,19 @@ def a_attrs(h):
     return ' target="_blank" rel="noopener"' if h.startswith("http") else ""
 
 
-# Header navigation (labels follow the live site's menu, plus the concepts the client asked for)
+# Header navigation. The third value says which mega menu the item opens (None for a plain link).
 NAV = [
-    ("Shop All Products", "collection.html", True),
-    ("Gondola Shelving", "gondola.html", False),
-    ("Custom Millwork &amp; Showcases", U + "/custom-millwork-showcases/", False),
-    ("Shop by Industry", "industries.html", False),
-    ("Free Store Layouts", "layouts.html", False),
-    ("Blog", U + "/blog/", False),
-    ("About Us", "industries.html#about", False),
-    ("Contact Us", "industries.html#contact", False),
+    ("Shop All Products", "collection.html", "products"),
+    ("Gondola Shelving", "gondola.html", None),
+    ("Custom Millwork &amp; Showcases", U + "/custom-millwork-showcases/", None),
+    ("Shop by Industry", "industries.html", "industry"),
+    ("Free Store Layouts", "layouts.html", None),
+    ("Blog", U + "/blog/", None),
+    ("About Us", "industries.html#about", None),
+    ("Contact Us", "industries.html#contact", None),
 ]
 
-# The live site's 20 product categories, grouped into mega-menu columns
+# The live site's 20 product categories, grouped into list-style mega-menu columns
 MEGA = [
     ("Shelving &amp; Systems", [("Gondola Shelving", "/gondola-shelving/"), ("Shelving", "/product-category/shelving/"),
                                ("Wall Standards", "/product-category/wall-standards/"), ("Retail Systems", "/product-category/retail-systems/")]),
@@ -69,17 +89,32 @@ MEGA = [
               ("Vintage-Style Displays", "/product-category/vintage-style-displays/")]),
 ]
 
-# (name, image, path) with images from the live site's category tiles
+# (name, one-line blurb, image, path, image fit). Photos are hi-res product cutouts downloaded from storedisplays.com.
 CATEGORY_TILES = [
-    ("Gondola Shelving", UP + "2024/09/Double-Sided_WB.png", "/gondola-shelving/", "contain"),
-    ("Display Showcases &amp; Counters", UP + "2026/08/display-cases-lg.jpg", "/product-category/counters-showcases/", "cover"),
-    ("Slatwall", UP + "2026/08/slatwalls.png", "/product-category/slatwall/", "cover"),
-    ("Gridwall", UP + "2026/08/gridwall-lg.jpg", "/product-category/gridwall/", "cover"),
-    ("Apparel Racks", UP + "2026/08/apparel-rack-lg.jpg", "/product-category/apparel-racks/", "cover"),
-    ("Mannequins", UP + "2026/08/mannequins-lg.jpg", "/product-category/mannequins/", "cover"),
+    ("Gondola Shelving", "Single, double, wall and end units.", "Double-Sided_WB.png", "/gondola-shelving/", "contain"),
+    ("Display Showcases &amp; Counters", "Glass cases that keep product secure and visible.", "ESC4-B.png", "/product-category/counters-showcases/", "contain"),
+    ("Slatwall", "Panels, hooks and shelves for any wall.", "sw48b-e1711044363236.jpg", "/product-category/slatwall/", "contain"),
+    ("Gridwall", "Flexible panels for varied merchandise.", "gridwall-lg.jpg", "/product-category/gridwall/", "cover"),
+    ("Apparel Racks", "Hanging and folding space for boutiques.", "LNHFET.png", "/product-category/apparel-racks/", "contain"),
+    ("Mannequins", "Forms that put the outfit in front of shoppers.", "R2204W-1.png", "/product-category/mannequins/", "contain"),
 ]
 
-# Industries from the live "Industries We Serve" page
+HERO = "homepage-hero-3.1.jpg"
+BANNER = "1-1-scaled.jpg"
+GALLERY = ["grocery-shelving.jpg", "AMKO_ESC6-WHITE.jpg", "0316-113.jpg", "FTC48-SHOWCASE-e1715623739376.jpg", "2-1.jpg", "3-1.jpg"]
+
+# Real posts from the live blog (titles of the last three come from the post addresses)
+BLOG = [
+    ("How Retail Displays Affect Customer Buying Behavior", "/how-retail-displays-affect-customer-buying-behavior/", "retail-displays.jpg"),
+    ("New Store Opening Checklist: Every Retail Fixture You'll Need", "/new-store-opening-checklist/", "open-store-checklist.jpg"),
+    ("How to Refresh Your Store Displays Without a Full Renovation", "/how-to-refresh-your-store-displays-without-a-full-renovation/", "refresh-your-store.jpg"),
+    ("Gondola Displays: The Retail Layout Secret Behind More Sales", "/gondola-displays-the-retail-layout-secret-behind-more-sales/", "shelves-blur.jpg"),
+    ("The Best Shelving Materials for Retail Stores: A Complete Guide", "/the-best-shelving-materials-for-retail-stores-a-complete-guide/", "retail-shelving.jpg"),
+    ("12 Creative Ways to Use Gridwall Panels in Your Store", "/12-creative-ways-to-use-gridwall-panels-in-your-store/", "plant-grid-wall.jpg"),
+    ("Top 5 Types of Commercial Glass Display Cabinets for Retail Stores", "/top-5-types-of-commercial-glass-display-cabinets-for-retail-stores/", "jewelry-case.jpg"),
+    ("Tight on Retail Floor Space? 4 Types of Retail Displays That Maximize Your Real Estate", "/tight-on-retail-floor-space-maximize-your-real-estate-with-these-4-types-of-retail-displays/", "clothes-racks.jpg"),
+]
+
 # (slug, name, product kinds to show, intro line, intro is from the live site)
 IND = [
     ("apparel-stores", "Apparel Stores", ["rack", "form", "slatwall"], "Stylish setups that captivate and convert.", True),
@@ -92,11 +127,111 @@ IND = [
     ("supermarkets", "Supermarkets", ["gondola"], "Organize your aisles with our robust gondola shelving options.", True),
 ]
 INDUSTRIES = [x[1] for x in IND]
+IND_IMG = {
+    "apparel-stores": "apparel-stores.jpg", "beauty-supply-shops": "beauty-supply.jpg", "jewelry-stores": "jewelry-store-2.jpg",
+    "liquor-stores": "liquor-store.jpg", "pharmacies": "pharmacies.jpg", "pop-up-shops": "popup-store.jpg",
+    "smoke-vape-shops": "smoke-vape-shop.jpg", "supermarkets": "supermarket-2.jpg",
+}
 
-IMG_STORE = UP + "2026/08/retail-systems-lg.jpg"
-IMG_CASES = UP + "2026/08/display-cases-lg.jpg"
-GALLERY = [UP + "2026/08/" + f for f in ["retail-systems-lg.jpg", "general-store-lg.jpg", "display-tables-lg.jpg",
-                                          "floor-merchandisers-lg.jpg", "glass-wood-cubby-display-lg.jpg", "shoe-displays-lg.jpg"]]
+# Draft SEO copy per industry (sample wording for review). kw = primary keyword, sec = secondary keywords.
+IND_SEO = {
+    "apparel-stores": dict(
+        title="Apparel Store Fixtures & Clothing Racks", kw="apparel store fixtures",
+        sec=["clothing racks for boutiques", "retail shelving for apparel stores", "mannequins for fashion stores"],
+        h1="Apparel Store Fixtures &amp; Clothing Racks",
+        meta="Clothing racks, mannequins, slatwall and gridwall for apparel stores and boutiques. Prices shown, same-day Ground shipping on orders by 2 pm ET.",
+        body=[("Build a floor that sells clothes", "Boutiques and apparel stores usually mix hanging space, folded product and a few focal displays. Racks give flexible hanging capacity, etageres combine hanging and folding, and mannequins put the outfit in front of the customer.",
+               [("Apparel racks", "/product-category/apparel-racks/"), ("Mannequins", "/product-category/mannequins/")]),
+              ("Use the walls too", "Slatwall and gridwall turn perimeter walls into display space for accessories, shoes and folded stacks, which frees the floor for browsing.",
+               [("Slatwall", "/product-category/slatwall/"), ("Gridwall", "/product-category/gridwall/")])],
+        faq=[("What fixtures do I need to open a clothing boutique?", "Most boutiques start with hanging racks, a few tables or etageres for folded product, a fitting room rack, mannequins for focal points and wall displays for accessories."),
+             ("Can I mix racks and slatwall?", "Yes. Many stores hang best sellers on racks and use slatwall hooks and shelves for add-on items.")],
+        blog=7),
+    "beauty-supply-shops": dict(
+        title="Beauty Supply Store Displays & Shelving", kw="beauty supply store displays",
+        sec=["slatwall for beauty supplies", "glass display cases for cosmetics", "retail shelving for beauty stores"],
+        h1="Beauty Supply Store Displays &amp; Shelving",
+        meta="Sturdy slatwall, shelving and glass showcases for beauty supply shops, with prices shown and same-day Ground shipping on orders placed by 2 pm ET.",
+        body=[("Organize hundreds of small items", "Beauty supply shops carry many small, light products. Slatwall with hooks and shelves keeps them visible and sorted by category, while gondola runs hold larger packaged goods.",
+               [("Slatwall", "/product-category/slatwall/"), ("Gondola shelving", "/gondola-shelving/")]),
+              ("Protect the premium items", "Glass showcases and counters keep higher-priced products secure while still on display.",
+               [("Display showcases &amp; counters", "/product-category/counters-showcases/")])],
+        faq=[("What is the best way to display small beauty products?", "Slatwall hooks, small shelves and countertop displays keep small products visible and easy to restock."),
+             ("Do you offer glass cases for cosmetics?", "Yes. See the display showcases and counters category for glass cases and counters.")],
+        blog=4),
+    "jewelry-stores": dict(
+        title="Jewelry Store Display Cases & Showcases", kw="jewelry store display cases",
+        sec=["glass display cases for jewelry", "jewelry showcases with lighting", "custom display showcases for luxury items"],
+        h1="Jewelry Store Display Cases &amp; Showcases",
+        meta="Glass showcases, towers and counters for jewelry stores, plus custom millwork. Prices shown, with same-day Ground shipping on orders by 2 pm ET.",
+        body=[("Showcases that keep high-ticket items secure", "Jewelry sells on visibility and trust. Glass showcases and counters with locking doors keep product protected while customers browse, and tower cases add height without taking floor space.",
+               [("Display showcases &amp; counters", "/product-category/counters-showcases/")]),
+              ("Custom millwork for a signature look", "When a standard case will not fit the space or the brand, custom millwork and built-to-order showcases can match your layout.",
+               [("Custom millwork &amp; showcases", "/custom-millwork-showcases/"), ("Jewelry &amp; handbag displays", "/product-category/jewelry-handbag-displays/")])],
+        faq=[("What kind of case is best for a jewelry store?", "Glass showcases with locking doors suit most jewelry stores. Tower cases and counters can be combined to build a full floor."),
+             ("Can you build a custom jewelry counter?", "Store Displays offers custom millwork and built-to-order showcases. Contact the team with your layout.")],
+        blog=6),
+    "liquor-stores": dict(
+        title="Liquor Store Shelving & Display Fixtures", kw="liquor store shelving",
+        sec=["gondola shelving for liquor stores", "wine and spirits display shelving", "heavy duty retail shelving"],
+        h1="Liquor Store Shelving &amp; Display Fixtures",
+        meta="Heavy-duty gondola shelving rated up to 500 lbs per shelf, plus slatwall and showcases for liquor stores. Prices shown, same-day Ground shipping.",
+        body=[("Gondola shelving built for heavy bottles", "Liquor stores stock heavy product, so shelf capacity matters. Store Displays gondola shelving is rated up to 500 lbs per shelf and comes in single-sided, double-sided, wall and end units.",
+               [("Gondola shelving", "/gondola-shelving/")]),
+              ("Secure the high-value bottles", "Locking glass showcases and counters keep premium bottles and tobacco products secure near the register.",
+               [("Display showcases &amp; counters", "/product-category/counters-showcases/")])],
+        faq=[("How much weight can gondola shelving hold?", "Store Displays lists shelf capacity of up to 500 lbs per shelf for its gondola shelving."),
+             ("Which gondola colors are available?", "Black and Antique White.")],
+        blog=3),
+    "pharmacies": dict(
+        title="Pharmacy Shelving & Counter Displays", kw="pharmacy shelving",
+        sec=["pharmacy display fixtures", "retail shelving for pharmacies", "countertop displays for pharmacies"],
+        h1="Pharmacy Shelving &amp; Counter Displays",
+        meta="Gondola shelving, glass counters and countertop displays for pharmacies. Prices shown, with same-day Ground shipping on orders placed by 2 pm ET.",
+        body=[("Clear aisles for health and beauty", "Pharmacies need aisles that are easy to scan. Gondola runs create organized rows for over-the-counter products, with end units for promotions.",
+               [("Gondola shelving", "/gondola-shelving/")]),
+              ("Counters and impulse displays", "Glass counters and countertop displays keep small, high-value items near the checkout.",
+               [("Countertop displays", "/product-category/countertop-displays/"), ("Display showcases &amp; counters", "/product-category/counters-showcases/")])],
+        faq=[("Can I add end units to promote products?", "Yes. End units finish a gondola run and are a common place for promotions."),
+             ("Do you help plan the layout?", "Request a free store layout plan and the team will help.")],
+        blog=3),
+    "pop-up-shops": dict(
+        title="Pop-Up Shop Displays & Portable Fixtures", kw="pop-up shop displays",
+        sec=["portable retail displays", "clothing racks for pop-up stores", "slatwall for temporary retail"],
+        h1="Pop-Up Shop Displays &amp; Portable Fixtures",
+        meta="Racks, tables, slatwall and mannequins for pop-up shops that set up fast. Prices shown, same-day Ground shipping on orders placed by 2 pm ET.",
+        body=[("Set up fast, look established", "Pop-up shops need fixtures that go up quickly and still look complete. Racks, tables and floor merchandisers can be arranged in minutes and moved as the space changes.",
+               [("Apparel racks", "/product-category/apparel-racks/"), ("Display tables", "/product-category/display-tables/")]),
+              ("Make a small space work harder", "Slatwall panels and gridwall add vertical display area when floor space is limited.",
+               [("Slatwall", "/product-category/slatwall/"), ("Gridwall", "/product-category/gridwall/")])],
+        faq=[("What do I need for a pop-up store?", "Most pop-ups need a few racks or tables, a wall or gridwall display, signage and a counter."),
+             ("How fast do orders ship?", "Ground orders placed by 2 pm ET ship the same day.")],
+        blog=1),
+    "smoke-vape-shops": dict(
+        title="Smoke & Vape Shop Display Cases & Slatwall", kw="vape shop display cases",
+        sec=["smoke shop display cases", "slatwall for vape shops", "glass showcases for smoke shops"],
+        h1="Smoke &amp; Vape Shop Display Cases &amp; Slatwall",
+        meta="Sleek glass showcases and slatwall for smoke and vape shops. Prices shown, with same-day Ground shipping on orders placed by 2 pm ET.",
+        body=[("Showcases that sell", "Smoke and vape shops rely on visible, secure product. Glass showcases and counters with locking doors show product clearly while keeping it protected.",
+               [("Display showcases &amp; counters", "/product-category/counters-showcases/")]),
+              ("Slatwall for accessories", "Slatwall panels with shelves and hooks keep accessories organized on the wall behind the counter.",
+               [("Slatwall", "/product-category/slatwall/")])],
+        faq=[("What display cases work for a smoke shop?", "Locking glass showcases and counters are the most common choice, often paired with slatwall behind the counter."),
+             ("Can I get a case with lighting?", "Some extra vision cases are available with LED spotlights. See the product options.")],
+        blog=6),
+    "supermarkets": dict(
+        title="Supermarket Gondola Shelving & Displays", kw="supermarket gondola shelving",
+        sec=["gondola shelving for grocery stores", "affordable gondola shelving", "double sided gondola shelving"],
+        h1="Supermarket Gondola Shelving &amp; Store Displays",
+        meta="Gondola shelving for supermarkets and grocery stores: single, double, wall and end units rated to 500 lbs per shelf. Prices shown, ships fast.",
+        body=[("Organize your aisles with gondola shelving", "Gondola shelving is the backbone of grocery aisles. Double-sided units build freestanding aisles, single-sided and wall units line the perimeter, and end units finish each run.",
+               [("Gondola shelving", "/gondola-shelving/")]),
+              ("Plan the whole floor", "A free layout plan helps match the number of runs, the height and the aisle width to your space.",
+               [("Free store layouts", "layouts.html")])],
+        faq=[("What is the difference between single- and double-sided gondola shelving?", "Single-sided units sit against a wall. Double-sided units stand freely and are used to build aisles."),
+             ("What sizes are available?", 'Lengths of 30", 36" and 48", depths from 12" to 24" and heights from 48" to 96".')],
+        blog=3),
+}
 
 
 def P(id, name, sku, kind, cat, price, fin, img, path, sub, real=True, new=False, fit="contain", badge=False, frm=False):
@@ -142,11 +277,11 @@ PRODUCTS = [
 ]
 
 FAQ = [
-    ("Where do you ship?", "Sample wording based on the live site. Store Displays ships within the United States (Alaska and Hawaii excluded per the kickoff). Order by 2 pm ET and Ground orders ship the same day; LTL orders ship the next day."),
-    ("Can you help me plan my store layout?", "Sample answer. A free layout request flow is planned. The client asked for free store layouts, in the way Displayarama offers them."),
-    ("Do you offer volume discounts?", "Sample answer. The live site has a Volume Discount Pricing page. Tiered pricing may be explored after launch, once performance data exists."),
-    ("Do you build custom showcases and millwork?", "Sample answer. The live site has Custom Millwork &amp; Showcases. Real capabilities to be confirmed."),
-    ("How does gondola shelving pricing work?", "Sample answer. Today the gondola page is a quote form with units from $107. The redesign aims to show pricing on the page instead."),
+    ("Where do you ship?", "Store Displays ships within the United States (Alaska and Hawaii excluded per the kickoff). Order by 2 pm ET and Ground orders ship the same day; LTL orders ship the next day."),
+    ("Can you help me plan my store layout?", "Yes, in this concept. A free layout request flow is planned. The client asked for free store layouts, in the way Displayarama offers them."),
+    ("Do you offer volume discounts?", "The live site has a Volume Discount Pricing page. Tiered pricing may be explored after launch, once performance data exists."),
+    ("Do you build custom showcases and millwork?", "The live site has Custom Millwork &amp; Showcases. Real capabilities to be confirmed."),
+    ("How does gondola shelving pricing work?", "Today the gondola page is a quote form with units from $107. The redesign aims to show pricing on the page instead."),
     ("Do I need an account to see prices?", "No. Prices are shown on the page, which matches the live site and the client's goal of reducing request-for-quote drop-off."),
 ]
 
@@ -156,13 +291,28 @@ TESTIMONIALS = [
     ("Placeholder testimonial. Real customer reviews to be supplied by the client.", "Customer name, City"),
 ]
 
+# Real phrases from the live home page's "Popular Searches", mapped to a page that would target them
+POPULAR = [
+    ("Affordable Gondola Shelving for Grocery Stores", "industry-supermarkets.html"),
+    ("Best Gridwall Displays for Small Retailers", "/product-category/gridwall/"),
+    ("Durable Slatwall Panels with Hooks", "/product-category/slatwall/"),
+    ("Retail Shelving Solutions for Apparel Stores", "industry-apparel-stores.html"),
+    ("Custom Display Showcases for Luxury Items", "/custom-millwork-showcases/"),
+    ("Mannequins for Fashion Boutiques and Stores", "/product-category/mannequins/"),
+    ("Floor Merchandisers for Promotional Events", "/product-category/floor-merchandisers/"),
+    ("Cube Displays and Cubby Storage for Eyewear", "/product-category/cube-displays/"),
+    ("Countertop Displays for Last-Minute Sales Items", "/product-category/countertop-displays/"),
+    ("Hanging Solutions for Clothing Stores", "/product-category/apparel-racks/"),
+    ("Vintage-Style Store Displays for Niche Shops", "/product-category/vintage-style-displays/"),
+]
+
 THEMES = {
-    "concept": dict(name="Concept", tag="Light, airy and rounded. Inter type, pill buttons, a rounded photo slideshow and a bundle-style builder, as on the Concept demo store.",
-                    order=["intro", "tiles", "trending", "gondolaband", "industries", "gallery", "reviews", "blog", "faq", "newsletter"]),
+    "concept": dict(name="Concept", tag="Light, airy and rounded. Inter type, pill buttons, a rotating photo slideshow, card-style mega menus and industry cards, as on the Concept demo store.",
+                    order=["intro", "tiles", "trending", "gondolaband", "industries", "gallery", "reviews", "seo", "blog", "faq", "newsletter"]),
     "release": dict(name="Release", tag="Editorial. A transparent header over a full-bleed hero, light Poppins headlines and banner-led sections, as on the Release demo store.",
-                    order=["trending", "dualtiles", "banner", "tiles", "callout", "highlight", "industries", "reviews", "showroom", "blog", "faq", "newsletter"]),
+                    order=["trending", "dualtiles", "banner", "tiles", "callout", "highlight", "industries", "reviews", "showroom", "seo", "blog", "faq", "newsletter"]),
     "prestige": dict(name="Prestige", tag="Quiet and architectural. Spaced uppercase headings, square buttons and a light grey page, as on the Prestige demo store.",
-                     order=["tiles", "trending", "banner", "industries", "highlight", "blog", "faq", "newsletter"]),
+                     order=["tiles", "trending", "banner", "industries", "highlight", "seo", "blog", "faq", "newsletter"]),
 }
 
 
@@ -176,16 +326,62 @@ FONTS = {
 }
 
 
-def head(theme, title):
-    t = THEMES[theme]
+def plain(s):
+    return html.unescape(re.sub(r"<[^>]+>", "", s))
+
+
+def esc(s):
+    return html.escape(s, quote=True)
+
+
+# ---- SEO helpers ----------------------------------------------------------
+def ld_org():
+    return {"@context": "https://schema.org", "@type": "Organization", "name": "Store Displays", "url": U + "/",
+            "logo": U + UP + "2025/09/sd-logo.png", "telephone": "+1-201-935-2929", "email": EMAIL,
+            "address": {"@type": "PostalAddress", "streetAddress": "7 Purcell Ct.", "addressLocality": "Moonachie",
+                        "addressRegion": "NJ", "postalCode": "07074", "addressCountry": "US"}}
+
+
+def ld_site():
+    return {"@context": "https://schema.org", "@type": "WebSite", "name": "Store Displays", "url": U + "/",
+            "potentialAction": {"@type": "SearchAction", "target": U + "/?s={search_term_string}", "query-input": "required name=search_term_string"}}
+
+
+def ld_bc(items):
+    return {"@context": "https://schema.org", "@type": "BreadcrumbList",
+            "itemListElement": [{"@type": "ListItem", "position": i + 1, "name": plain(n), "item": U + live}
+                                for i, (n, _, live) in enumerate(items)]}
+
+
+def ld_faq(items):
+    return {"@context": "https://schema.org", "@type": "FAQPage",
+            "mainEntity": [{"@type": "Question", "name": plain(q), "acceptedAnswer": {"@type": "Answer", "text": plain(a)}} for q, a in items]}
+
+
+def ld_list(prods):
+    return {"@context": "https://schema.org", "@type": "ItemList",
+            "itemListElement": [{"@type": "ListItem", "position": i + 1, "name": plain(p["name"]), "url": U + p["path"]} for i, p in enumerate(prods[:8])]}
+
+
+def S(path, title, meta, kw, sec, schema, notes):
+    return dict(path=path, title=title, meta=meta, kw=kw, sec=sec, schema=schema, notes=notes)
+
+
+def head(theme, s):
     fonts = ('<link rel="preconnect" href="https://fonts.googleapis.com">'
              '<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>'
-             '<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=%s&display=swap">') % FONTS[theme]
+             '<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=' + FONTS[theme] + '&display=swap">')
+    ld = "".join('<script type="application/ld+json">' + json.dumps(x, ensure_ascii=False).replace("</", "<\\/") + "</script>" for x in s["schema"])
+    data = json.dumps({"path": s["path"], "kw": s["kw"], "sec": s["sec"], "notes": s["notes"],
+                       "schema": [x["@type"] for x in s["schema"]]}).replace("</", "<\\/")
+    t, m = esc(plain(s["title"])), esc(plain(s["meta"]))
     return ('<!doctype html><html lang="en"><head><meta charset="utf-8">'
             '<meta name="viewport" content="width=device-width,initial-scale=1">'
-            '<title>%s | Store Displays&reg; | %s concept</title>'
-            '<meta name="description" content="Visual concept of Store Displays&reg; on Shopify, modeled on the %s demo store. Sample content.">'
-            '%s<link rel="stylesheet" href="style.css"></head><body class="t-%s">') % (title, t["name"], t["name"], fonts, theme)
+            '<title>' + t + '</title><meta name="description" content="' + m + '">'
+            '<meta property="og:title" content="' + t + '"><meta property="og:description" content="' + m + '"><meta property="og:type" content="website">'
+            + fonts + '<link rel="stylesheet" href="style.css">' + ld +
+            '<script type="application/json" id="seo-data">' + data + '</script></head><body class="t-' + theme + '">')
+
 
 def concept_bar(theme, page):
     links = []
@@ -193,23 +389,20 @@ def concept_bar(theme, page):
         cur = ' aria-current="page"' if k == theme else ""
         links.append('<a href="../%s/%s"%s>%s</a>' % (k, page, cur, v["name"]))
     return ('<div class="cbar"><span><strong>Visual concept.</strong> Static mockup modeled on the %s theme\'s public demo store, '
-            'not the real theme. Prices, photos and stats are SAMPLE.</span><nav aria-label="Switch concept">%s'
+            'not the real theme. Prices, photos and stats are SAMPLE unless noted.</span><nav aria-label="Switch concept">%s'
             '<a href="../index.html">Overview</a></nav></div>') % (THEMES[theme]["name"], "".join(links))
-
-def esc(s):
-    return html.escape(s, quote=True)
 
 
 def pic(path, alt, cls="", fit="cover"):
-    src = path if path.startswith("http") else U + path
-    return ('<div class="ph ph-img ph-%s %s"><img src="%s" alt="%s" loading="lazy"></div>') % (fit, cls, src, esc(alt))
+    return '<div class="ph ph-img ph-%s %s"><img src="%s" alt="%s" loading="lazy"></div>' % (fit, cls, img_src(path), esc(alt))
 
 
 def wordmark():
-    return '<a class="logo" href="index.html"><img src="%s" alt="Store Displays" width="150" height="40"></a>' % LOGO
+    return '<a class="logo" href="index.html"><img src="%s" alt="Store Displays" width="150" height="40"></a>' % img_src("sd-logo.png")
 
 
-def mega():
+# ---- Navigation and mega menus ---------------------------------------------
+def mega_list():
     cols = []
     for title, items in MEGA:
         lis = "".join('<li><a href="%s"%s>%s</a></li>' % (href(p), a_attrs(href(p)), l) for l, p in items)
@@ -217,6 +410,23 @@ def mega():
     promo = ('<div class="mcol mpromo"><strong>Need help choosing?</strong><p>Call <a href="tel:%s">%s</a> or request a free layout plan.</p>'
              '<a class="btn btn-sm" href="layouts.html">Free layout plan</a></div>') % (PHONE_TEL, PHONE1)
     return '<div class="mega" role="menu">%s%s</div>' % ("".join(cols), promo)
+
+
+def mcard(name, blurb, img, h, fit, dark=False):
+    cls = "mcard dark" if dark else "mcard"
+    return ('<a class="%s" href="%s"%s><div class="mc-img">%s</div><div class="mc-row"><div><strong>%s</strong><span>%s</span></div>'
+            '<i class="mc-arr" aria-hidden="true">&rarr;</i></div></a>') % (cls, h, a_attrs(h), pic(img, name, "", fit), name, blurb)
+
+
+def mega_cards(kind):
+    if kind == "products":
+        cards = "".join(mcard(n.replace("Display Showcases &amp; Counters", "Showcases &amp; Counters"), b, i, href(p), f) for n, b, i, p, f in CATEGORY_TILES[:5])
+        cards += mcard("All products", "Shop every category.", HERO, "collection.html", "cover", True)
+    else:
+        pick = ["apparel-stores", "jewelry-stores", "liquor-stores", "supermarkets"]
+        cards = "".join(mcard(n, b, IND_IMG[s], "industry-%s.html" % s, "cover") for s, n, _, b, _ in IND if s in pick)
+        cards += mcard("All industries", "Find your store type.", "apparel-stores.jpg", "industries.html", "cover", True)
+    return '<div class="mega mega-cards%s" role="menu">%s</div>' % (" n6" if kind == "products" else "", cards)
 
 
 HEADER_NAV = {
@@ -234,15 +444,17 @@ ICON_SVG = {
 
 
 def header(theme, page):
-    mm = mega()
     items = []
-    for label, h, has_mega in NAV:
+    for label, h, mega in NAV:
         if label not in HEADER_NAV[theme]:
             continue
-        if has_mega:
-            items.append('<li class="has-mega"><a href="%s">%s</a>%s</li>' % (h, label, mm))
-        else:
-            items.append('<li><a href="%s"%s>%s</a></li>' % (h, a_attrs(h), label))
+        panel = ""
+        if mega and theme == "concept":
+            panel = mega_cards(mega)
+        elif mega == "products":
+            panel = mega_list()
+        cls = ' class="has-mega"' if panel else ""
+        items.append('<li%s><a href="%s"%s>%s</a>%s</li>' % (cls, h, a_attrs(h), label, panel))
     nav = '<nav class="nav" aria-label="Main"><ul>%s</ul></nav>' % "".join(items)
     icons = ('<div class="hicons"><a href="#" aria-label="Search">%s</a><a href="#" aria-label="Account">%s</a>'
              '<a class="cart" href="#" aria-label="Cart, 0 items">%s<span>0</span></a></div>') % (
@@ -258,9 +470,33 @@ def header(theme, page):
         inner = nav + wordmark() + icons
         cls = "hdr hdr-over" if page == "index.html" else "hdr"
     else:
-        ann = '<div class="ann"><span>Same-day shipping on Ground orders placed by 2 pm ET</span><span><a href="#" data-modal="ship">Calculate shipping</a> &nbsp;&middot;&nbsp; <a href="layouts.html">Free layout plan</a></span></div>'
+        ann = ('<div class="ann"><span>Same-day shipping on Ground orders placed by 2 pm ET</span>'
+               '<span><a href="#" data-modal="ship">Calculate shipping</a> &nbsp;&middot;&nbsp; <a href="layouts.html">Free layout plan</a></span></div>')
         inner, cls = nav + wordmark() + icons, "hdr"
     return '%s%s<header class="%s"><div class="hdr-in">%s</div></header>' % (concept_bar(theme, page), ann, cls, inner)
+
+
+def modals():
+    return ('<div class="modal" id="m-ship" hidden role="dialog" aria-modal="true" aria-label="Calculate shipping"><div class="modal-box">'
+            '<button class="modal-close" data-close aria-label="Close">&times;</button><h2>Calculate shipping</h2>'
+            '<p class="note">Concept. East, Central and West zones were discussed on the kickoff call. Rates here are SAMPLE.</p>'
+            '<form class="form" data-ship><label>ZIP code<input inputmode="numeric" maxlength="5" placeholder="07074" required></label>'
+            '<label>Estimated order weight (lb)<input type="number" min="1" value="150"></label><button class="btn">Estimate</button></form>'
+            '<div class="ship-out" data-ship-out hidden></div></div></div>'
+            '<div class="modal" id="m-bulk" hidden role="dialog" aria-modal="true" aria-label="Request bulk pricing"><div class="modal-box">'
+            '<button class="modal-close" data-close aria-label="Close">&times;</button><h2>Request bulk pricing</h2>'
+            '<p class="note">Concept of the Get Bulk Pricing form on Displayarama. The live site also has a Volume Discount Pricing page.</p>'
+            '<form class="form"><label>Name<input required></label><label>Email<input type="email" required></label>'
+            '<label>What are you ordering?<input placeholder="e.g. 4 gondola runs"></label><label>Quantity<input type="number" min="1" value="10"></label>'
+            '<button class="btn">Request bulk pricing (demo)</button></form></div></div>'
+            '<div class="modal" id="m-pop" hidden role="dialog" aria-modal="true" aria-label="Newsletter"><div class="modal-box">'
+            '<button class="modal-close" data-close aria-label="Close">&times;</button><h2>Sign up and get 10% off your first order</h2>'
+            '<p class="note">Concept of the newsletter capture discussed on the kickoff call. Final offer and terms to be confirmed.</p>'
+            '<form class="form"><label>Email<input type="email" required></label><button class="btn">Get my 10% off (demo)</button></form></div></div>'
+            '<div class="toast" data-toast hidden role="status"></div>'
+            '<button class="seo-toggle" type="button" data-seo-toggle aria-pressed="false">SEO view</button>'
+            '<aside class="seo-panel" data-seo-panel hidden aria-label="SEO view"><div class="sp-head"><strong>SEO view</strong>'
+            '<span>Strategy for this page</span></div><div data-seo-body></div></aside>')
 
 
 def footer(theme):
@@ -273,13 +509,15 @@ def footer(theme):
     info += '<li><a href="layouts.html">Free store layouts</a></li><li><a href="#" data-modal="ship">Calculate shipping</a></li>'
     pol = "".join(ext(l, p) for l, p in [("Volume discount pricing", "/volume-discount-pricing/"), ("Shipping policy", "/shipping-policy/"),
                                           ("Return policy", "/return-policy/"), ("Sitemap", "/sitemap/")])
-    return (('<footer class="ftr"><div class="wrap fgrid">'
-            '<div><div class="logo logo-f"><img src="%s" alt="Store Displays" width="150" height="40"></div>'
-            '<p>%s</p><p>Tel <a href="tel:%s">%s</a><br><a href="mailto:%s">%s</a></p></div>'
-            '<div><h4>Shop</h4><ul>%s</ul></div><div><h4>Information</h4><ul>%s</ul></div><div><h4>Policies</h4><ul>%s</ul></div></div>'
-            '<div class="wrap fine">Concept mockup for review only. Links, product names, SKUs, prices and images come from storedisplays.com; '
-            'everything marked sample is not final. Not a live store.</div></footer>'
-            '<script src="../assets/app.js"></script></body></html>') % (LOGO, ADDRESS, PHONE_TEL, PHONE1, EMAIL, EMAIL, shop, info, pol)).replace("<script src", modals() + "<script src", 1)
+    ind = "".join('<li><a href="industry-%s.html">%s</a></li>' % (s, n) for s, n, _, _, _ in IND)
+    out = ('<footer class="ftr"><div class="wrap fgrid">'
+           '<div><div class="logo logo-f"><img src="' + img_src("sd-logo.png") + '" alt="Store Displays" width="150" height="40"></div>'
+           '<p>' + ADDRESS + '</p><p>Tel <a href="tel:' + PHONE_TEL + '">' + PHONE1 + '</a><br><a href="mailto:' + EMAIL + '">' + EMAIL + '</a></p></div>'
+           '<div><h4>Shop</h4><ul>' + shop + '</ul></div><div><h4>Industries</h4><ul>' + ind + '</ul></div>'
+           '<div><h4>Information</h4><ul>' + info + '</ul></div><div><h4>Policies</h4><ul>' + pol + '</ul></div></div>'
+           '<div class="wrap fine">Concept mockup for review only. Product names, SKUs, prices and images come from storedisplays.com; '
+           'everything marked sample is not final. Not a live store.</div></footer>')
+    return out + modals() + '<script src="../assets/app.js"></script></body></html>'
 
 
 def money(n):
@@ -299,7 +537,8 @@ def card(p, theme):
     price = ("from " if p["from"] else "") + money(p["price"])
     samp = "" if p["real"] else '<span class="samp">sample</span>'
     return ('<article class="pcard" data-kind="%s" data-fin="%s" data-price="%d" data-new="%d">'
-            '<a class="pimg" href="%s"%s>%s%s</a><div class="pbody"><h3><a href="%s"%s>%s</a></h3>'
+            '<div class="pwrap"><a class="pimg" href="%s"%s>%s%s</a><button class="qadd" type="button" data-qadd>Quick add</button></div>'
+            '<div class="pbody"><h3><a href="%s"%s>%s</a></h3>'
             '<p class="pdim">%s</p><div class="sws">%s</div><div class="prow"><strong class="price">%s</strong>%s</div>'
             '<span class="instock">In stock</span><a class="btn btn-sm btn-o" href="%s"%s>View details</a></div></article>'
             ) % (p["kind"], fins, round(p["price"]), 1 if p["new"] else 0, h, ex, pic(p["img"], p["name"], "ph-sm", p["fit"]),
@@ -312,8 +551,7 @@ def grid(prods, theme, cols=4):
 
 def faq_block(items=None):
     items = items or FAQ
-    return '<div class="faq">%s</div>' % "".join(
-        "<details><summary>%s</summary><p>%s</p></details>" % (q, a) for q, a in items)
+    return '<div class="faq">%s</div>' % "".join("<details><summary>%s</summary><p>%s</p></details>" % (q, a) for q, a in items)
 
 
 def section_head(eyebrow, title, link=None):
@@ -321,25 +559,55 @@ def section_head(eyebrow, title, link=None):
     return '<div class="sh"><div><span class="eyebrow">%s</span><h2>%s</h2></div>%s</div>' % (eyebrow, title, l)
 
 
-def crumbs(*items):
-    return '<nav class="crumbs wrap" aria-label="Breadcrumb">%s</nav>' % " / ".join(items)
+def crumbs(items):
+    out = []
+    for i, (label, h, _) in enumerate(items):
+        out.append(label if i == len(items) - 1 else '<a href="%s">%s</a>' % (h, label))
+    return '<nav class="crumbs wrap" aria-label="Breadcrumb">%s</nav>' % " / ".join(out)
+
+
+def alink(label, path):
+    h = href(path) if path.startswith("/") else path
+    return '<a href="%s"%s>%s</a>' % (h, a_attrs(h), label)
+
+
+def blog_card(b, cls="ph-b"):
+    t, p, i = b
+    return '<a class="bcard" href="%s"%s>%s<h3>%s</h3><span class="more">Read article &rarr;</span></a>' % (U + p, a_attrs(U + p), pic(i, t, cls, "cover"), t)
+
+
+# ---- Industry cards (used on home, hub and layouts pages) --------------------
+def ind_cards():
+    cards = "".join('<a class="icard" href="industry-%s.html">%s<div class="ic-copy"><h3>%s</h3><p class="ic-more">%s<b>Shop fixtures &rarr;</b></p></div>'
+                    '<span class="ic-plus" aria-hidden="true">+</span></a>' % (s, pic(IND_IMG[s], n + " store fixtures", "", "cover"), n, b)
+                    for s, n, _, b, _ in IND)
+    return '<div class="ind-cards">%s</div>' % cards
 
 
 # ---- Home sections --------------------------------------------------------
+SLIDES = [
+    ("Store displays that capture attention", "Shop display showcases", "collection.html", HERO),
+    ("Gondola shelving, priced and ready to ship", "Build your gondola run", "gondola.html", "supermarket-2.jpg"),
+    ("Fixtures for every kind of store", "Shop by industry", "industries.html", "apparel-stores.jpg"),
+]
+
+
 def hero(theme):
-    src = U + IMG_STORE
     if theme == "concept":
-        return ('<section class="hero-c"><div class="slide">%s'
-                '<div class="slide-copy"><h1>Store displays that capture attention</h1></div>'
-                '<a class="btn btn-w" href="collection.html">Shop all products</a>'
-                '<div class="dots"><i class="on"></i><i></i><i></i></div></div></section>') % pic(IMG_STORE, "Modern retail store interior", "ph-hero")
+        slides = "".join('<div class="slide%s">%s<div class="slide-copy"><%s>%s</%s></div><a class="btn btn-w" href="%s">%s</a></div>'
+                         % (" on" if i == 0 else "", pic(img, t, "ph-hero", "cover"), "h1" if i == 0 else "h2", t, "h1" if i == 0 else "h2", h, c)
+                         for i, (t, c, h, img) in enumerate(SLIDES))
+        dots = "".join('<button class="dot%s" type="button" aria-label="Slide %d"></button>' % (" on" if i == 0 else "", i + 1) for i in range(len(SLIDES)))
+        return ('<section class="hero-c" data-slider><div class="slides">%s<button class="s-arr" data-prev type="button" aria-label="Previous slide">&larr;</button>'
+                '<button class="s-arr" data-next type="button" aria-label="Next slide">&rarr;</button><div class="dots">%s</div></div></section>') % (slides, dots)
+    bg = img_src(HERO)
     if theme == "release":
-        return ('<section class="hero-r" style="background-image:linear-gradient(rgba(0,0,0,.45),rgba(0,0,0,.7)),url(%s);background-size:cover;background-position:center">'
+        return ('<section class="hero-r" style="background-image:linear-gradient(rgba(0,0,0,.4),rgba(0,0,0,.7)),url(%s);background-size:cover;background-position:center">'
                 '<div class="hero-r-in"><span class="eyebrow">Chosen by trusted brands nationwide</span>'
-                '<h1>Store displays, by design</h1><a class="btn btn-ow" href="collection.html">Discover more</a></div></section>') % src
-    return ('<section class="hero-p" style="background-image:linear-gradient(rgba(0,0,0,.5),rgba(0,0,0,.72)),url(%s);background-size:cover;background-position:center">'
+                '<h1>Store displays, by design</h1><a class="btn btn-ow" href="collection.html">Discover more</a></div></section>') % bg
+    return ('<section class="hero-p" style="background-image:linear-gradient(rgba(0,0,0,.45),rgba(0,0,0,.7)),url(%s);background-size:cover;background-position:center">'
             '<div class="hero-p-in"><h1>Showcases made to be seen</h1>'
-            '<a class="btn btn-lt" href="collection.html">Shop display showcases</a></div></section>') % (U + IMG_CASES)
+            '<a class="btn btn-lt" href="collection.html">Shop display showcases</a></div></section>') % bg
 
 
 def sec_intro(theme):
@@ -350,8 +618,8 @@ def sec_intro(theme):
 
 
 def sec_dualtiles(theme):
-    t = [("Gondola shelving", UP + "2024/09/Double-Sided_WB.png", "gondola.html", "Build your run", "contain"),
-         ("Display showcases &amp; counters", UP + "2026/08/display-cases-lg.jpg", "collection.html", "Shop showcases", "cover")]
+    t = [("Gondola shelving", "Double-Sided_WB.png", "gondola.html", "Build your run", "contain"),
+         ("Display showcases &amp; counters", "ESC4-B.png", "collection.html", "Shop showcases", "contain")]
     tiles = "".join('<a class="dtile" href="%s">%s<div class="dt-copy"><span class="eyebrow">Featured</span><h2>%s</h2>'
                     '<span class="btn btn-ow">%s</span></div></a>' % (h, pic(i, n, "ph-dt", f), n, c) for n, i, h, c, f in t)
     return '<section class="sec dual"><div class="wrap-w dual-g">%s</div></section>' % tiles
@@ -365,7 +633,7 @@ def sec_banner(theme):
 
 def sec_callout(theme):
     return ('<section class="callout"><div class="wrap center-t"><h2>Volume discount pricing</h2>'
-            '<p>Ordering more? See the live volume discount pricing page.</p>'
+            '<p>Ordering more? Request bulk pricing or see the live volume discount pricing page.</p>'
             '<a class="btn" href="#" data-modal="bulk">Request bulk pricing</a> <a class="btn btn-o" href="%s/volume-discount-pricing/" target="_blank" rel="noopener">See volume pricing</a></div></section>') % U
 
 
@@ -381,21 +649,20 @@ def sec_showroom(theme):
     return ('<section class="sec alt"><div class="wrap split"><div><span class="eyebrow">Talk to a person</span><h2>Top-notch, personal service</h2>'
             '<p>When you call, you speak with a knowledgeable team member who can answer your questions immediately.</p>'
             '<p>%s<br>Tel <a href="tel:%s">%s</a></p><a class="btn" href="industries.html#contact">Contact us</a></div>%s</div></section>'
-            ) % (ADDRESS, PHONE_TEL, PHONE1, pic(UP + "2026/08/general-store-lg.jpg", "Assorted store fixtures", "ph-wide", "cover"))
+            ) % (ADDRESS, PHONE_TEL, PHONE1, pic("0316-113.jpg", "Store Displays showroom", "ph-wide", "cover"))
 
 
 def sec_tiles(theme):
     t = "".join('<a class="ctile" href="%s"%s>%s<span class="ct-name">%s</span><span class="ct-go">Shop all &rarr;</span></a>'
-                % (href(p), a_attrs(href(p)), pic(i, n, "ph-tile", f), n) for n, i, p, f in CATEGORY_TILES)
+                % (href(p), a_attrs(href(p)), pic(i, n, "ph-tile", f), n) for n, b, i, p, f in CATEGORY_TILES)
     return '<section class="sec"><div class="wrap">%s<div class="tiles">%s</div></div></section>' % (
         section_head("Popular product categories", "Shop by category", "collection.html"), t)
 
 
 def sec_industries(theme):
-    t = "".join('<a class="itile" href="industry-%s.html"><span class="it-n">%s</span><span class="it-g">Shop fixtures &rarr;</span></a>' % (s, n) for s, n, _, _, _ in IND)
-    return ('<section class="sec alt"><div class="wrap">%s<div class="itiles">%s</div>'
-            '<p class="note">Industries come from the live Industries We Serve page. Dedicated industry pages are a concept.</p></div></section>'
-            ) % (section_head("Find your store type", "Shop by industry", "industries.html"), t)
+    return ('<section class="sec alt ind-sec"><div class="wrap"><div class="ind-head"><div><span class="eyebrow">Find your store type</span><h2>Shop by industry</h2></div>'
+            '<p>Fixtures, layouts and pricing for the way your store sells. Pick your industry to see recommended products.</p></div>%s'
+            '<p class="note">Industries come from the live Industries We Serve page. Dedicated industry pages are a concept.</p></div></section>') % ind_cards()
 
 
 def sec_trending(theme):
@@ -408,11 +675,11 @@ def sec_gondolaband(theme):
             '<h2>Build your gondola run</h2><p>Pick the unit type, length, height and finish from the live site\'s real options, and see a price as you go. '
             'Concept only. A real configurator needs an app or custom build.</p>'
             '<a class="btn" href="gondola.html#builder">Start building</a></div>%s</div></section>'
-            ) % pic(UP + "2024/09/Double-Sided_WB.png", "Double-sided gondola shelving", "ph-wide", "contain")
+            ) % pic("Double-Sided_WB.png", "Double-sided gondola shelving", "ph-wide", "contain")
 
 
 def sec_gallery(theme):
-    imgs = "".join(pic(g, "Store displays", "ph-g", "cover") for g in GALLERY)
+    imgs = "".join(pic(g, "Store Displays showcase and shelving photo", "ph-g", "cover") for g in GALLERY)
     return ('<section class="sec"><div class="wrap">%s<div class="gal">%s</div>'
             '<div class="center"><a class="btn" href="tel:%s">Call %s</a></div></div></section>'
             % (section_head("Chosen by trusted brands nationwide", "Store displays that capture attention", None), imgs, PHONE_TEL, PHONE1))
@@ -437,16 +704,21 @@ def sec_faq(theme):
 
 
 def sec_blog(theme):
-    posts = [("Gondola Shelving 101: Versatile Shelving Solutions", "From the live blog. Title taken from the post's address.",
-              U + "/gondola-shelving-101-versatile-shelving-solutions/", UP + "2024/09/Double-Sided_WB.png", "contain"),
-             ("Choosing the right display case", "Sample SEO article that links to showcases and the jewelry store industry page.", "#",
-              UP + "2026/08/display-cases-lg.jpg", "cover"),
-             ("Slatwall vs gridwall: which fits your layout", "Sample SEO article that links to slatwall and gridwall products.", "#",
-              UP + "2026/08/slatwalls.png", "cover")]
-    c = "".join('<a class="bcard" href="%s"%s>%s<h3>%s</h3><p>%s</p><span class="more">Read article &rarr;</span></a>'
-                % (h, a_attrs(h), pic(i, t, "ph-b", f), t, d) for t, d, h, i, f in posts)
+    c = "".join(blog_card(BLOG[i]) for i in (3, 1, 0))
     return '<section class="sec alt"><div class="wrap">%s<div class="blogs">%s</div></div></section>' % (
         section_head("Store ideas", "From the blog", U + "/blog/"), c)
+
+
+def sec_seo(theme):
+    inds = "".join("<li>%s</li>" % alink(n, "industry-%s.html" % s) for s, n, _, _, _ in IND)
+    pop = "".join("<li>%s</li>" % alink(t, p) for t, p in POPULAR)
+    return ('<section class="sec seo-sec"><div class="wrap prose"><h2>Store displays and retail fixtures for every kind of store</h2>'
+            '<p>Store Displays&reg; supplies ' + alink("gondola shelving", "/gondola-shelving/") + ', ' + alink("display showcases and counters", "/product-category/counters-showcases/") + ', '
+            + alink("slatwall", "/product-category/slatwall/") + ', ' + alink("gridwall", "/product-category/gridwall/") + ' and ' + alink("apparel racks", "/product-category/apparel-racks/") +
+            ' to boutiques, supermarkets, liquor stores, pharmacies and more, with prices on the page and same-day shipping on Ground orders placed by 2 pm ET.</p>'
+            '<h3>Shop by what you sell</h3><ul class="plinks">' + inds + '</ul>'
+            '<h3>Popular searches</h3><ul class="plinks">' + pop + '</ul>'
+            '<p class="note">Draft copy for SEO review. The popular searches are the live site\'s own list, linked to the pages that would target them.</p></div></section>')
 
 
 def sec_newsletter(theme):
@@ -460,14 +732,25 @@ SECS = {
     "intro": sec_intro, "tiles": sec_tiles, "dualtiles": sec_dualtiles, "banner": sec_banner, "callout": sec_callout,
     "highlight": sec_highlight, "showroom": sec_showroom, "industries": sec_industries, "trending": sec_trending,
     "gondolaband": sec_gondolaband, "gallery": sec_gallery, "stats": sec_stats, "reviews": sec_reviews,
-    "faq": sec_faq, "blog": sec_blog, "newsletter": sec_newsletter,
+    "faq": sec_faq, "blog": sec_blog, "seo": sec_seo, "newsletter": sec_newsletter,
 }
+
+
+def shell(theme, s, page, body):
+    return head(theme, s) + header(theme, page) + "<main>" + body + "</main>" + footer(theme)
 
 
 # ---- Pages ----------------------------------------------------------------
 def page_home(theme):
+    s = S("/", "Store Fixtures & Retail Displays | Store Displays®",
+          "Shop gondola shelving, display showcases, slatwall, gridwall and apparel racks with prices shown. Same-day Ground shipping on orders placed by 2 pm ET.",
+          "store fixtures", ["retail displays", "display cases", "gondola shelving", "slatwall panels", "clothing racks"],
+          [ld_org(), ld_site()],
+          ["The live title is 'Official Store Displays®: Shop Display Cases, Store Fixtures, Merchandise Displays'. This proposal is shorter and leads with the primary keyword.",
+           "Organization and WebSite schema added.", "A crawlable text block links every category and industry, and the live site's own popular searches.",
+           "The hero H1 is a keyword-light brand line in the slideshow; the intro H2 carries the keyword theme."])
     body = hero(theme) + "".join(SECS[k](theme) for k in THEMES[theme]["order"])
-    return head(theme, "Home") + header(theme, "index.html") + "<main>" + body + "</main>" + footer(theme)
+    return shell(theme, s, "index.html", body)
 
 
 def builder():
@@ -483,6 +766,7 @@ def builder():
 
 def page_gondola(theme):
     g = [p for p in PRODUCTS if p["kind"] == "gondola"]
+    bc = [("Home", "index.html", "/"), ("Gondola shelving", "gondola.html", "/gondola-shelving/")]
     tiles = "".join('<div class="vt"><strong>%s</strong><span>%s</span></div>' % x for x in [
         ("Same-day shipping", "Order by 2 pm ET and Ground orders ship the same day. LTL ships the next day."),
         ("Top-notch, personal service", "Call %s and speak with a knowledgeable team member." % PHONE1),
@@ -493,7 +777,17 @@ def page_gondola(theme):
         ("Length", '30" / 36" / 48"'), ("Depth", '12" / 14" / 16" / 18" / 20" / 22" / 24"'),
         ("Height", '48" / 54" / 60" / 72" / 84" / 96" plus 12" and 24" extensions'), ("Colors", "Black / Antique White"),
         ("Shelf capacity", "Up to 500 lbs per shelf")])
-    body = (crumbs('<a href="index.html">Home</a>', "Gondola shelving") +
+    faq = FAQ[4:5] + [("What sizes does gondola shelving come in?", 'Lengths of 30", 36" and 48", depths from 12" to 24" and heights from 48" to 96", plus 12" and 24" extensions.'),
+                      ("What is the difference between single- and double-sided gondola shelving?", "Single-sided units sit against a wall. Double-sided units stand freely and are used to build aisles.")]
+    s = S("/gondola-shelving/", "Gondola Shelving for Retail & Grocery | Store Displays®",
+          "Single-sided, double-sided, wall and end gondola shelving rated up to 500 lbs per shelf. Build your run, see prices, and ship fast from Store Displays®.",
+          "gondola shelving", ["retail gondola shelving", "grocery store shelving", "double sided gondola shelving", "gondola shelving for liquor stores"],
+          [ld_bc(bc), ld_faq(faq), ld_list(g)],
+          ["The live title is 62 characters, just over the guideline. This trims it to 55 without losing the primary keyword.",
+           "The live page is a quote form; the concept adds visible prices, a builder and crawlable guidance below the fold.",
+           "Internal links point to the supermarket, liquor store and pharmacy industry pages and the live gondola blog post.",
+           "FAQPage schema added; spec table is real page content."])
+    body = (crumbs(bc) +
             '<section class="ghero"><div class="wrap"><span class="eyebrow">Retail &amp; grocery stores</span><h1>Gondola Shelving</h1>'
             '<p>Where convenience, liquor, grocery and apparel stores shop. Units start from $107 on the live site; this concept puts prices and options on the page instead of a quote form.</p>'
             '<a class="btn" href="#builder">Build your gondola run</a></div></section>'
@@ -503,16 +797,24 @@ def page_gondola(theme):
             '<p class="note">Single-sided "from $107" is from the live site. Other gondola prices are SAMPLE.</p>'
             '<div class="split spec-split"><div class="seo"><h2>Gondola shelving system specifications</h2><table class="spec">' + spec + '</table>'
             '<p class="note">Specifications are from the live Gondola Shelving page.</p></div>'
-            '<div class="seo"><h2>Maximizing vertical space</h2><p>Sample SEO copy. Taller gondola units show more product, as long as they stay accessible to customers. '
-            'Single- and double-sided units, end units and upper shelves combine into runs that fit the store.</p>'
+            '<div class="seo"><h2>Maximizing vertical space</h2><p>Taller gondola units show more product, as long as everything stays within easy reach of customers. '
+            'Single- and double-sided units, end units and upper shelves combine into runs that fit your store.</p>'
             '<div class="ctas"><a class="btn" href="#" data-modal="bulk">Request bulk pricing</a><a class="btn btn-o" href="layouts.html">Request free layout</a></div></div></div>'
             '</div></section>'
-            '<section class="sec alt"><div class="wrap narrow">' + section_head("Gondola FAQ", "Questions about gondola shelving", None) + faq_block() + '</div></section>')
-    return head(theme, "Gondola Shelving") + header(theme, "gondola.html") + "<main>" + body + "</main>" + footer(theme)
+            '<section class="sec alt seo-sec"><div class="wrap prose"><h2>Single-sided vs double-sided gondola shelving</h2>'
+            '<h3>Single-sided units for walls</h3><p>Single-sided and wall units line the perimeter of a store and hold product at the eye level of shoppers walking past. They are the right choice when a run sits against a wall.</p>'
+            '<h3>Double-sided units for aisles</h3><p>Double-sided units stand freely and give you two shelving faces back to back. They build the aisles of a grocery, liquor or convenience store, and end units finish each run.</p>'
+            '<h2>Gondola shelving for grocery, liquor and convenience stores</h2>'
+            '<p>Gondola shelving is the backbone of aisle layouts. See how it fits a ' + alink("supermarket", "industry-supermarkets.html") + ', a ' + alink("liquor store", "industry-liquor-stores.html") +
+            ' or a ' + alink("pharmacy", "industry-pharmacies.html") + ', or read ' + alink(BLOG[3][0], BLOG[3][1]) + '.</p>'
+            '<p class="note">Draft copy for SEO review.</p></div></section>'
+            '<section class="sec"><div class="wrap narrow">' + section_head("Gondola FAQ", "Questions about gondola shelving", None) + faq_block(faq) + '</div></section>')
+    return shell(theme, s, "gondola.html", body)
 
 
 def page_collection(theme):
     prods = PRODUCTS
+    bc = [("Home", "index.html", "/"), ("Shop all products", "collection.html", "/shop/")]
     kinds = [("case", "Showcases &amp; counters"), ("gondola", "Gondola shelving"), ("slatwall", "Slatwall"), ("rack", "Apparel racks"), ("form", "Mannequins")]
     finishes = ["Black", "White", "Silver", "Bronze", "Antique White"]
     f_kind = "".join('<label><input type="checkbox" data-f="kind" value="%s"> %s</label>' % x for x in kinds)
@@ -524,37 +826,68 @@ def page_collection(theme):
     side = ('<aside class="filters" data-filters><details open><summary>Type</summary>%s</details>'
             '<details open><summary>Finish / color</summary>%s</details><details open><summary>Price</summary>%s</details>'
             '<button class="btn btn-o btn-sm" type="button" data-clear>Clear filters</button></aside>') % (f_kind, f_fin, f_price)
-    body = (crumbs('<a href="index.html">Home</a>', "Shop all products") +
-            '<section class="chero"><div class="wrap"><h1>Shop All Products</h1>'
-            '<p>Sample intro copy above the grid, aligned to the product-matched H1 recommended in the SEO plan. Color and size are variants, not separate categories. '
-            'Products below are real items from storedisplays.com, with their SKUs and listing prices.</p></div></section>'
+    faq = FAQ[:4]
+    s = S("/shop/", "Shop All Store Displays & Retail Fixtures | Store Displays®",
+          "Shop store displays and retail fixtures: gondola shelving, display showcases, slatwall, gridwall, apparel racks and mannequins. Prices shown, ships fast.",
+          "retail store displays", ["store fixtures for sale", "display cases for retail stores", "slatwall panels", "clothing racks"],
+          [ld_bc(bc), ld_list(prods), ld_faq(faq)],
+          ["Product-matched H1 and an intro paragraph above the grid, as agreed on the kickoff call.",
+           "Color and size are variants, so the roughly 360 live categories collapse into filters instead of thin category pages.",
+           "Buying-guide content sits below the grid and links to the gondola, industry and layout pages.", "ItemList and FAQPage schema added."])
+    body = (crumbs(bc) +
+            '<section class="chero"><div class="wrap"><h1>Shop All Store Displays</h1>'
+            '<p>Browse store fixtures by type, finish and price. Products below are real items from storedisplays.com, with their SKUs and listing prices.</p></div></section>'
             '<section class="sec"><div class="wrap clayout">' + side +
             '<div class="cmain"><div class="ctool"><span data-count>%d products</span>'
             '<label>Sort <select data-sort><option value="">Featured</option><option value="new">Newest</option><option value="lo">Price: low to high</option><option value="hi">Price: high to low</option></select></label></div>'
             % len(prods) + '<div data-grid>' + grid(prods, theme, 3) + '</div><p class="empty" data-empty hidden>No products match these filters.</p>'
-            '<div class="seo"><h2>Choosing store fixtures</h2><p>Sample content below the grid. Explains display cases, gondola shelving, slatwall and racks, sizes, lighting and finishes.</p></div></div></div></section>'
-            '<section class="sec alt"><div class="wrap narrow">' + section_head("FAQ", "Store fixture questions", None) + faq_block(FAQ[:4]) + '</div></section>')
-    return head(theme, "Shop All Products") + header(theme, "collection.html") + "<main>" + body + "</main>" + footer(theme)
+            '<div class="seo prose"><h2>How to choose store fixtures</h2>'
+            '<h3>Match the fixture to the merchandise</h3><p>' + alink("Gondola shelving", "/gondola-shelving/") + ' suits many small items in aisles. Glass ' + alink("showcases", "/product-category/counters-showcases/") +
+            ' protect high-ticket items. ' + alink("Slatwall", "/product-category/slatwall/") + ' and ' + alink("gridwall", "/product-category/gridwall/") + ' turn walls into flexible display space.</p>'
+            '<h3>Plan for space and traffic</h3><p>Leave room for customers to move. A ' + alink("free layout plan", "layouts.html") + ' helps match fixtures to your floor.</p>'
+            '<h3>Shop by what you sell</h3><p>Not sure where to start? Browse fixtures for ' + alink("apparel stores", "industry-apparel-stores.html") + ', ' + alink("liquor stores", "industry-liquor-stores.html") +
+            ' or ' + alink("jewelry stores", "industry-jewelry-stores.html") + '.</p><p class="note">Draft copy for SEO review.</p></div></div></div></section>'
+            '<section class="sec alt"><div class="wrap narrow">' + section_head("FAQ", "Store fixture questions", None) + faq_block(faq) + '</div></section>')
+    return shell(theme, s, "collection.html", body)
 
 
 def page_product(theme):
     p = PRODUCTS[0]
     rel = [x for x in PRODUCTS if x["kind"] == "case" and x["id"] != p["id"]][:4]
+    bc = [("Home", "index.html", "/"), ("Shop all products", "collection.html", "/shop/"),
+          ("Display showcases &amp; counters", "collection.html", "/product-category/counters-showcases/"), (p["name"], "product.html", p["path"])]
 
     def opts(name, rows):
         out = ""
-        for i, (label, add, real) in enumerate(rows):
+        for i, (label, add) in enumerate(rows):
             out += ('<label class="swl"><input type="radio" name="%s" value="%s" %s data-opt data-add="%d"> %s</label>'
                     % (name, label, "checked" if i == 0 else "", add, label))
         return out
-    colors = opts("color", [("Black", 0, True), ("Silver", -20, True)])
-    types = opts("type", [("Regular base", 0, True), ("LED spotlights", 565, True), ("RGB lighted base", 180, False)])
-    sizes = opts("size", [("4'", 0, True), ("5'", 60, True), ("6'", 120, False)])
-    body = (crumbs('<a href="index.html">Home</a>', '<a href="collection.html">Shop all products</a>', "Display showcases &amp; counters", p["name"]) +
+    colors = opts("color", [("Black", 0), ("Silver", -20)])
+    types = opts("type", [("Regular base", 0), ("LED spotlights", 565), ("RGB lighted base", 180)])
+    sizes = opts("size", [("4'", 0), ("5'", 60), ("6'", 120)])
+    faq = [("Does the extra vision display case come assembled?", "It ships unassembled and is built for easy assembly. Assembly instructions are available to download on the live product page."),
+           ("Does the case lock?", "Yes. It has sliding doors with a key and lock."),
+           ("What size is the 4-foot case?", '48" x 20" x 38" (L x W x H), with a top glass of 46 3/4" x 18 3/4" and a 34" display area.')]
+    product_ld = {"@context": "https://schema.org", "@type": "Product", "name": plain(p["name"]), "sku": p["sku"],
+                  "image": [U + UP + "2024/02/ESC4-B.png", U + UP + "2024/02/ESC4-B_2.png"],
+                  "description": "High-quality showcase with tempered glass finish, 2 rows of adjustable shelves, black aluminum frame, 4 inch kick base and sliding doors with key and lock.",
+                  "brand": {"@type": "Brand", "name": "Store Displays"},
+                  "offers": {"@type": "Offer", "url": U + p["path"], "priceCurrency": "USD", "price": "%.2f" % p["price"],
+                             "availability": "https://schema.org/InStock", "itemCondition": "https://schema.org/NewCondition"}}
+    s = S(p["path"], "4′ Black Extra Vision Display Case | Store Displays®",
+          "4-foot black extra vision glass display case with tempered glass, 2 adjustable shelves and a locking sliding door. 48 x 20 x 38 in. In stock, ships fast.",
+          "extra vision display case", ["4 ft glass display case", "black aluminum display case", "locking glass showcase"],
+          [ld_bc(bc), product_ld, ld_faq(faq)],
+          ["The live title is 61 characters. This shortened title keeps the keyword, and the description adds the size and lock, which searchers compare on.",
+           "Product schema with price, SKU, availability and images; BreadcrumbList and FAQPage schema.",
+           "The FAQ answers come from facts on the live product page (ships unassembled, key and lock, dimensions).",
+           "Internal links go to the category, the glass cabinet buying guide and the layout page."])
+    body = (crumbs(bc) +
             '<section class="sec"><div class="wrap pdp"><div class="gal-p">' +
-            pic(UP + "2024/02/ESC4-B-800x711.png", p["name"], "ph-main", "contain") +
-            '<div class="thumbs">' + pic(UP + "2024/02/ESC4-B-800x711.png", "Front view", "ph-th", "contain") +
-            pic(UP + "2024/02/ESC4-B_2-800x711.png", "Side view", "ph-th", "contain") + '</div></div>'
+            pic("ESC4-B.png", p["name"], "ph-main", "contain") +
+            '<div class="thumbs">' + pic("ESC4-B.png", "Front view of " + p["name"], "ph-th", "contain") +
+            pic("ESC4-B_2.png", "Side view of " + p["name"], "ph-th", "contain") + '</div></div>'
             '<div class="info"><span class="eyebrow">Display showcases &amp; counters</span><h1>' + p["name"] + '</h1>'
             '<p class="sku">SKU <span data-sku>%s</span> &middot; In stock</p>' % p["sku"] +
             '<div class="prow big"><strong class="price" data-price data-base="%d">%s</strong></div>' % (p["price"], money(p["price"])) +
@@ -575,23 +908,38 @@ def page_product(theme):
             'Concept excludes Alaska and Hawaii per the kickoff.</p></details>'
             '<details><summary>Downloads</summary><p>Assembly instructions download link goes here, as on the live product page.</p></details>'
             '<p class="note">Features, specifications, SKU and images are from the live product page at storedisplays.com.</p></div></div></section>'
+            '<section class="sec alt seo-sec"><div class="wrap prose"><h2>About the 4′ black standard extra vision display case</h2>'
+            '<p>This showcase pairs a sleek black aluminum frame with tempered glass for maximum visibility, two rows of adjustable shelves and sliding doors that lock with a key. '
+            'It is a popular choice for ' + alink("jewelry stores", "industry-jewelry-stores.html") + ', ' + alink("smoke and vape shops", "industry-smoke-vape-shops.html") + ' and ' +
+            alink("pharmacies", "industry-pharmacies.html") + '.</p>'
+            '<p>Browse more in ' + alink("display showcases and counters", "/product-category/counters-showcases/") + ', or read ' + alink(BLOG[6][0], BLOG[6][1]) + '.</p>'
+            '<p class="note">Draft copy for SEO review.</p></div></section>'
+            '<section class="sec"><div class="wrap narrow">' + section_head("FAQ", "Questions about extra vision display cases", None) + faq_block(faq) + '</div></section>'
             '<section class="sec alt"><div class="wrap">' + section_head("You may also like", "Related showcases", None) + grid(rel, theme, 4) + '</div></section>')
-    return head(theme, p["name"]) + header(theme, "product.html") + "<main>" + body + "</main>" + footer(theme)
+    return shell(theme, s, "product.html", body)
 
 
 def page_industries(theme):
-    tiles = "".join('<a class="itile" href="industry-%s.html"><span class="it-n">%s</span><span class="it-g">Shop fixtures &rarr;</span></a>' % (s, n) for s, n, _, _, _ in IND)
-    body = (crumbs('<a href="index.html">Home</a>', "Shop by industry") +
+    bc = [("Home", "index.html", "/"), ("Shop by industry", "industries.html", "/industries-we-serve/")]
+    s = S("/industries-we-serve/", "Retail Fixtures by Industry | Store Displays®",
+          "Find retail fixtures for your store type: apparel, beauty supply, jewelry, liquor, pharmacies, pop-up shops, smoke/vape shops and supermarkets.",
+          "store displays by industry", ["retail fixtures by store type", "fixtures for boutiques", "grocery store shelving", "jewelry store display cases"],
+          [ld_bc(bc), ld_org()],
+          ["The live page is 'Industries We Serve'. The concept makes each industry its own landing page, which gives every industry a page to rank for its own keyword.",
+           "This hub links all eight industry pages and the free layout page.",
+           "Industry cards use the live site's own industry photography."])
+    body = (crumbs(bc) +
             '<section class="chero"><div class="wrap"><span class="eyebrow">Industries served by Store Displays&reg;</span><h1>Shop by Industry</h1>'
-            '<p>Find fixtures for your store type. The live site lists these industries on its Industries We Serve page; dedicated industry pages double as SEO landing pages in this concept.</p></div></section>'
+            '<p>Find fixtures for your store type. The live site lists these industries on its Industries We Serve page; here each one becomes its own landing page, linked to products and blog posts.</p></div></section>'
             + sec_stats(theme) +
-            '<section class="sec"><div class="wrap"><div class="itiles">' + tiles + '</div><p class="note">Each tile opens a concept industry page. The live site lists the same industries on its Industries We Serve page.</p></div></section>'
+            '<section class="sec ind-sec"><div class="wrap">' + ind_cards() + '<p class="note">Each card opens a concept industry page. The live site lists the same industries on its Industries We Serve page.</p></div></section>'
             '<section class="sec alt"><div class="wrap center-t"><span class="eyebrow">Free store layouts</span><h2>Not sure what your store needs?</h2>'
             '<p>Request a free layout plan or book a call with our team.</p><a class="btn" href="layouts.html">Free store layouts</a></div></section>'
-            '<section class="sec" id="custom"><div class="wrap split">' + pic(UP + "2026/08/glass-wood-cubby-display-lg.jpg", "Glass and wooden display", "ph-tall", "cover") +
-            '<div><span class="eyebrow">Custom millwork &amp; showcases</span><h2>Custom showcases and millwork</h2>'
+            '<section class="sec" id="custom"><div class="wrap">' + pic(BANNER, "Custom millwork and made-in-USA showcases from Store Displays", "ph-banner-img", "cover") +
+            '<div class="split custom-split"><div><span class="eyebrow">Custom millwork &amp; showcases</span><h2>Custom showcases and millwork</h2>'
             '<p>The live site has a Custom Millwork &amp; Showcases page. Final copy for this section comes from the client.</p>'
-            '<a class="btn" href="' + U + '/custom-millwork-showcases/" target="_blank" rel="noopener">See the live page</a></div></div></section>'
+            '<a class="btn" href="' + U + '/custom-millwork-showcases/" target="_blank" rel="noopener">See the live page</a></div>' +
+            pic("2-1.jpg", "Custom glass showcase", "ph-wide", "cover") + '</div></div></section>'
             '<section class="sec alt" id="about"><div class="wrap narrow"><span class="eyebrow">About Store Displays&reg;</span><h2>One-stop shop for store displays</h2>'
             '<p>Placeholder about copy. Per the live site, Store Displays personally selects its merchandise and brings decades of retail merchandising experience. '
             'Final story to come from the client.</p></div></section>'
@@ -599,35 +947,25 @@ def page_industries(theme):
             '<p>' + ADDRESS + '</p><p>Tel <a href="tel:%s">%s</a><br><a href="mailto:%s">%s</a></p></div>' % (PHONE_TEL, PHONE1, EMAIL, EMAIL) +
             '<form class="form" onsubmit="this.querySelector(\'button\').textContent=\'Thanks (demo)\';return false"><label>Name<input required></label>'
             '<label>Email<input type="email" required></label><label>Message<textarea rows="3"></textarea></label><button class="btn">Send (demo)</button></form></div></section>')
-    return head(theme, "Shop by Industry") + header(theme, "industries.html") + "<main>" + body + "</main>" + footer(theme)
-
-def modals():
-    return ('<div class="modal" id="m-ship" hidden role="dialog" aria-modal="true" aria-label="Calculate shipping"><div class="modal-box">'
-            '<button class="modal-close" data-close aria-label="Close">&times;</button><h2>Calculate shipping</h2>'
-            '<p class="note">Concept. East, Central and West zones were discussed on the kickoff call. Rates here are SAMPLE.</p>'
-            '<form class="form" data-ship><label>ZIP code<input inputmode="numeric" maxlength="5" placeholder="07074" required></label>'
-            '<label>Estimated order weight (lb)<input type="number" min="1" value="150"></label><button class="btn">Estimate</button></form>'
-            '<div class="ship-out" data-ship-out hidden></div></div></div>'
-            '<div class="modal" id="m-bulk" hidden role="dialog" aria-modal="true" aria-label="Request bulk pricing"><div class="modal-box">'
-            '<button class="modal-close" data-close aria-label="Close">&times;</button><h2>Request bulk pricing</h2>'
-            '<p class="note">Concept of the Get Bulk Pricing form on Displayarama. The live site also has a Volume Discount Pricing page.</p>'
-            '<form class="form"><label>Name<input required></label><label>Email<input type="email" required></label>'
-            '<label>What are you ordering?<input placeholder="e.g. 4 gondola runs"></label><label>Quantity<input type="number" min="1" value="10"></label>'
-            '<button class="btn">Request bulk pricing (demo)</button></form></div></div>'
-            '<div class="modal" id="m-pop" hidden role="dialog" aria-modal="true" aria-label="Newsletter"><div class="modal-box">'
-            '<button class="modal-close" data-close aria-label="Close">&times;</button><h2>Sign up and get 10% off your first order</h2>'
-            '<p class="note">Concept of the newsletter capture discussed on the kickoff call. Final offer and terms to be confirmed.</p>'
-            '<form class="form"><label>Email<input type="email" required></label><button class="btn">Get my 10% off (demo)</button></form></div></div>')
+    return shell(theme, s, "industries.html", body)
 
 
 def page_layouts(theme):
+    bc = [("Home", "index.html", "/"), ("Free store layouts", "layouts.html", "/free-store-layouts/")]
+    faq = FAQ[1:3]
     steps = "".join('<li><strong>%s</strong><span>%s</span></li>' % x for x in [
         ("Tell us about your store", "Store type, size and what you sell."), ("Share your floor plan", "Upload a sketch or photos."),
         ("Get your layout", "Concept. Turnaround time to be confirmed.")])
     types = "".join("<option>%s</option>" % n for n in INDUSTRIES) + "<option>Other</option>"
-    tiles = "".join('<a class="itile" href="industry-%s.html"><span class="it-n">%s</span><span class="it-g">Shop fixtures &rarr;</span></a>' % (s, n) for s, n, _, _, _ in IND)
+    tiles = "".join('<a class="itile" href="industry-%s.html"><span class="it-n">%s</span><span class="it-g">Shop fixtures &rarr;</span></a>' % (sl, n) for sl, n, _, _, _ in IND)
     done = "this.querySelector('button').textContent='Thanks (demo)';return false"
-    body = (crumbs('<a href="index.html">Home</a>', "Free store layouts") +
+    s = S("/free-store-layouts/", "Free Store Layout Planning | Store Displays®",
+          "Request a free store layout plan or book a layout call or showroom visit with the Store Displays® team.",
+          "free store layout", ["store layout planning", "retail store layout help", "book a showroom visit"],
+          [ld_bc(bc), ld_faq(faq)],
+          ["A new page: the client liked the free layout service on Displayarama. It targets layout-planning searches and feeds quote-ready leads.",
+           "FAQPage and BreadcrumbList schema; the industry links route visitors to the right industry page."])
+    body = (crumbs(bc) +
             '<section class="chero"><div class="wrap"><span class="eyebrow">Free store layouts</span><h1>Free Store Layouts</h1>'
             '<p>Concept page for the free layout service the client liked on Displayarama. Request a layout plan, or book a call or a showroom visit.</p></div></section>'
             '<section class="sec"><div class="wrap split"><div><h2>How it works</h2><ol class="steps">' + steps + '</ol></div>'
@@ -643,35 +981,51 @@ def page_layouts(theme):
             '<p class="note">Showroom: ' + ADDRESS + '. Availability is SAMPLE. Real scheduling needs a booking app.</p></div></div></div></section>'
             '<section class="sec"><div class="wrap">' + section_head("Plans by store type", "We plan for every kind of store", "industries.html") +
             '<div class="itiles">' + tiles + '</div></div></section>'
-            '<section class="sec alt"><div class="wrap narrow">' + section_head("FAQ", "Layout questions", None) + faq_block(FAQ[1:3]) + '</div></section>')
-    return head(theme, "Free Store Layouts") + header(theme, "layouts.html") + "<main>" + body + "</main>" + footer(theme)
+            '<section class="sec alt"><div class="wrap narrow">' + section_head("FAQ", "Layout questions", None) + faq_block(faq) + '</div></section>')
+    return shell(theme, s, "layouts.html", body)
 
 
 def page_industry(theme, slug):
     _, name, kinds, blurb, real = next(x for x in IND if x[0] == slug)
+    c = IND_SEO[slug]
     prods = [p for p in PRODUCTS if p["kind"] in kinds]
     page = "industry-%s.html" % slug
+    live = "/industries-we-serve/%s/" % slug
+    bc = [("Home", "index.html", "/"), ("Shop by industry", "industries.html", "/industries-we-serve/"), (name, page, live)]
+    others = [x for x in IND if x[0] != slug][:4]
     check = "".join("<li>%s</li>" % x for x in [
         "A free layout plan for your floor", "Fixtures sized to your space and merchandise",
         "Volume discount pricing on larger orders", "Same-day shipping on Ground orders placed by 2 pm ET"])
-    body = (crumbs('<a href="index.html">Home</a>', '<a href="industries.html">Shop by industry</a>', name) +
-            '<section class="chero"><div class="wrap"><span class="eyebrow">Shop by industry</span><h1>Store Displays for ' + name + '</h1>'
+    sections = "".join('<h2>%s</h2><p>%s</p><p>%s</p>' % (h2, txt, " &middot; ".join(alink(l, p) for l, p in links)) for h2, txt, links in c["body"])
+    s = S(live, c["title"] + " | Store Displays®", c["meta"], c["kw"], c["sec"], [ld_bc(bc), ld_faq(c["faq"]), ld_list(prods)],
+          ["Unique title, description and H1 built around '" + c["kw"] + "'.",
+           "Two content sections link to the category pages, the free layout page and a related live blog post.",
+           "FAQPage, ItemList and BreadcrumbList schema. Related-industry links keep visitors moving between store types.",
+           "Draft copy for SEO review: tone and claims need client sign-off."])
+    body = (crumbs(bc) +
+            '<section class="chero"><div class="wrap"><span class="eyebrow">Shop by industry</span><h1>' + c["h1"] + '</h1>'
             '<p>' + blurb + '</p><p class="note">' + ("Intro line is from the live site." if real else "Intro line is sample copy.") +
-            ' Industry pages are a concept: they would double as SEO landing pages linked to products and blog posts.</p>'
+            ' Industry pages are a concept: they double as SEO landing pages linked to products and blog posts.</p>'
             '<div class="ctas"><a class="btn" href="layouts.html">Free layout plan</a><a class="btn btn-o" href="#" data-modal="bulk">Request bulk pricing</a></div></div></section>'
-            '<section class="sec"><div class="wrap">' + section_head("Recommended for " + name.lower(), "Popular fixtures", "collection.html") +
+            '<section class="sec"><div class="wrap split ind-hero">' + pic(IND_IMG[slug], name + " store", "ph-tall", "cover") +
+            '<div class="prose"><h2>Store displays for ' + name.lower() + '</h2>' + sections + '</div></div></section>'
+            '<section class="sec alt"><div class="wrap">' + section_head("Recommended for " + name.lower(), "Popular fixtures", "collection.html") +
             grid(prods, theme, 4) + '</div></section>'
-            '<section class="sec alt"><div class="wrap split"><div><span class="eyebrow">What you get</span><h2>Everything for your ' + name.lower() + '</h2>'
+            '<section class="sec"><div class="wrap split"><div><span class="eyebrow">What you get</span><h2>Everything for your ' + name.lower() + '</h2>'
             '<ul class="hl">' + check + '</ul><div class="ctas"><a class="btn" href="layouts.html#book">Book a call</a></div></div>'
-            + pic(GALLERY[0], "Store displays", "ph-wide", "cover") + '</div></section>'
-            '<section class="sec"><div class="wrap narrow">' + section_head("FAQ", "Questions from " + name.lower(), None) + faq_block(FAQ[:3]) + '</div></section>')
-    return head(theme, "Store Displays for " + name) + header(theme, page) + "<main>" + body + "</main>" + footer(theme)
+            + pic(GALLERY[0], "Store Displays shelving", "ph-wide", "cover") + '</div></section>'
+            '<section class="sec alt"><div class="wrap narrow">' + section_head("FAQ", "Questions from " + name.lower(), None) + faq_block(c["faq"]) + '</div></section>'
+            '<section class="sec"><div class="wrap"><div class="two-col"><div>' + section_head("Related reading", "From the blog", U + "/blog/") + '<div class="blogs one">' + blog_card(BLOG[c["blog"]]) + '</div></div>'
+            '<div><div class="sh"><div><span class="eyebrow">Other store types</span><h2>More industries</h2></div></div><ul class="plinks one">' +
+            "".join("<li>%s</li>" % alink(n, "industry-%s.html" % sl) for sl, n, _, _, _ in others) + '</ul></div></div></div></section>')
+    return shell(theme, s, page, body)
 
 
 PAGES = {"index.html": page_home, "gondola.html": page_gondola, "collection.html": page_collection,
          "product.html": page_product, "industries.html": page_industries, "layouts.html": page_layouts}
 for _s, _n, _k, _b, _r in IND:
     PAGES["industry-%s.html" % _s] = (lambda t, s=_s: page_industry(t, s))
+
 
 # ----------------------------------------------------------------------------
 # CSS: shared base + per-theme tokens/overrides
@@ -741,7 +1095,7 @@ p{margin:0 0 1em}.note{font-size:.85rem;color:var(--mute)}.center{text-align:cen
 .news{background:var(--accent);color:var(--on-accent);padding:44px 0}.news-in{display:flex;gap:30px;justify-content:space-between;align-items:center;flex-wrap:wrap}
 .news h2{margin:0 0 6px}.news p{margin:0;opacity:.9}.news form{display:flex;gap:10px;flex-wrap:wrap}.news input{padding:.8em 1em;border:0;border-radius:var(--r);min-width:240px;font-family:inherit}
 .news .btn{background:#111;border-color:#111;color:#fff}
-.ftr{background:var(--dark);color:#d9d9d9;padding:50px 0 24px;font-size:.9rem}.fgrid{display:grid;grid-template-columns:1.4fr 1fr 1fr 1fr;gap:30px}
+.ftr{background:var(--dark);color:#d9d9d9;padding:50px 0 24px;font-size:.9rem}.fgrid{display:grid;grid-template-columns:1.4fr 1fr 1fr 1fr 1fr;gap:30px}
 .ftr h4{color:#fff;font-size:.95rem}.ftr ul{list-style:none;margin:0;padding:0}.ftr li{margin:6px 0}.ftr a{text-decoration:none}.ftr a:hover{text-decoration:underline}
 .logo-f{color:#fff;margin-bottom:12px}.fine{margin-top:30px;padding-top:16px;border-top:1px solid rgba(255,255,255,.15);font-size:.78rem;opacity:.7}
 .crumbs{padding:16px 20px;font-size:.82rem;color:var(--mute)}.crumbs a{text-decoration:none}
@@ -803,6 +1157,49 @@ EXTRA_CSS = r"""
 .bk-types button,.bk-days button,.bk-times button{border:1px solid var(--line);background:var(--card);padding:.6em .9em;border-radius:var(--r);cursor:pointer;font-family:inherit;font-size:.88rem;color:inherit}
 .bk-sel{border-color:var(--accent)!important;box-shadow:0 0 0 1px var(--accent);font-weight:700}.bk-conf{padding:14px;background:var(--alt);border-radius:var(--r);margin-bottom:14px}
 @media(max-width:980px){.book{grid-template-columns:1fr}}
+.pwrap{position:relative}.qadd{display:none}.pimg{display:block}
+.ind-head{display:flex;justify-content:space-between;align-items:flex-end;gap:32px;margin-bottom:28px;flex-wrap:wrap}.ind-head h2{margin:0}.ind-head p{max-width:420px;color:var(--mute);margin:0}
+.ind-cards{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
+.icard{position:relative;display:block;aspect-ratio:3/4;overflow:hidden;border-radius:var(--r);text-decoration:none;color:#fff;background:#222;isolation:isolate}
+.icard .ph{position:absolute;inset:0;border-radius:0;aspect-ratio:auto;transition:transform .7s ease}.icard:hover .ph{transform:scale(1.07)}
+.icard::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,0) 35%,rgba(0,0,0,.78));z-index:1}
+.ic-copy{position:absolute;left:20px;right:70px;bottom:20px;z-index:2}.ic-copy h3{margin:0 0 .3em;font-size:1.45rem;line-height:1.05;color:#fff;font-weight:700}
+.ic-more{margin:0;font-size:.9rem;line-height:1.3;max-height:0;opacity:0;overflow:hidden;transition:max-height .4s ease,opacity .4s ease}
+.icard:hover .ic-more,.icard:focus-visible .ic-more{max-height:150px;opacity:1}.ic-more b{display:block;margin-top:.6em}
+.ic-plus{position:absolute;right:16px;bottom:16px;z-index:2;width:40px;height:40px;border-radius:50%;background:rgba(255,255,255,.22);display:grid;place-items:center;font-size:1.5rem;transition:transform .3s,background .3s,color .3s}
+.icard:hover .ic-plus{transform:rotate(45deg);background:#fff;color:#171717}
+@media(hover:none){.ic-more{max-height:none;opacity:1}}
+@media(max-width:980px){.ind-cards{grid-template-columns:1fr 1fr}}@media(max-width:560px){.ind-cards{grid-template-columns:1fr}}
+.mega-cards.n6{grid-template-columns:repeat(6,1fr)}.mega .mcard,.mega .mcard *{white-space:normal}
+.mega-cards{grid-template-columns:repeat(5,1fr);gap:16px;padding:22px 32px 32px;border-top:0;border-radius:0 0 16px 16px}
+.mcard{display:flex;flex-direction:column;background:#fafafa;border-radius:16px;overflow:hidden;text-decoration:none;color:#171717;transition:transform .25s,box-shadow .25s}
+.mcard:hover{transform:translateY(-4px);box-shadow:0 14px 28px rgba(0,0,0,.1)}
+.mc-img{position:relative;aspect-ratio:1/.8}.mc-img .ph{position:absolute;inset:0;border-radius:0;aspect-ratio:auto;background:transparent}
+.mc-row{display:flex;justify-content:space-between;align-items:flex-end;gap:10px;padding:14px 18px 18px}
+.mc-row strong{display:block;font-size:1.25rem;letter-spacing:-.03em;line-height:1.1;font-weight:700}.mc-row span{font-size:.86rem;color:#555;line-height:1.25;display:block;margin-top:4px}
+.mc-arr{font-style:normal;font-size:1.4rem;transition:transform .25s}.mcard:hover .mc-arr{transform:translateX(5px)}
+.mcard.dark{background:#171717;color:#fff;position:relative;justify-content:flex-end;min-height:260px}
+.mcard.dark .mc-img{position:absolute;inset:0;aspect-ratio:auto}.mcard.dark .mc-img::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,.1),rgba(0,0,0,.78))}
+.mcard.dark .mc-row{position:relative;z-index:2}.mcard.dark .mc-row span{color:#ddd}
+.has-mega>a{position:relative}.has-mega>a::after{content:"";position:absolute;left:-12px;right:-12px;top:100%;height:34px}
+@keyframes mdrop{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:none}}.has-mega:hover .mega{animation:mdrop .2s ease}
+.prose{max-width:860px}.prose h2{font-size:clamp(1.4rem,2.4vw,1.9rem);margin:1.2em 0 .5em}.prose h2:first-child{margin-top:0}.prose h3{font-size:1.1rem;margin:1.2em 0 .4em}
+.prose p{color:var(--mute);line-height:1.65}.prose a{text-decoration:underline;text-underline-offset:3px}
+.plinks{list-style:none;padding:0;margin:0 0 1em;columns:2;column-gap:32px}.plinks li{padding:.35em 0;break-inside:avoid}.plinks a{color:var(--ink);text-decoration:underline;text-underline-offset:3px}.plinks.one{columns:1}
+.seo-sec .prose{max-width:960px}.ind-hero{align-items:start}.ind-hero .ph{max-width:480px}
+.two-col{display:grid;grid-template-columns:1.2fr 1fr;gap:40px}.blogs.one{grid-template-columns:1fr}
+.ph-banner-img{aspect-ratio:2560/836;border-radius:var(--r);margin-bottom:32px}.custom-split{align-items:center}
+@media(max-width:980px){.two-col{grid-template-columns:1fr}.plinks{columns:1}}
+.toast{position:fixed;left:50%;bottom:28px;transform:translateX(-50%);background:#171717;color:#fff;padding:.8em 1.4em;border-radius:99px;font-size:.9rem;z-index:300;box-shadow:0 8px 24px rgba(0,0,0,.25)}.toast[hidden]{display:none}
+.seo-toggle{position:fixed;left:18px;bottom:18px;z-index:250;background:#f5a623;color:#171717;border:0;border-radius:99px;padding:.7em 1.1em;font:700 .8rem system-ui,sans-serif;cursor:pointer;box-shadow:0 6px 18px rgba(0,0,0,.25)}
+.seo-toggle[aria-pressed=true]{background:#171717;color:#f5a623}
+.seo-panel{position:fixed;top:0;right:0;bottom:0;width:min(380px,100vw);background:#111;color:#eee;z-index:240;padding:20px;overflow:auto;font:14px/1.45 system-ui,sans-serif;box-shadow:-12px 0 32px rgba(0,0,0,.35)}.seo-panel[hidden]{display:none}
+.sp-head{display:flex;flex-direction:column;margin-bottom:14px;padding-bottom:12px;border-bottom:1px solid #333}.sp-head strong{font-size:1.1rem;color:#f5a623}.sp-head span{color:#aaa;font-size:.8rem}
+.sp-row{margin-bottom:14px}.sp-row>span{display:block;font-size:.7rem;text-transform:uppercase;letter-spacing:.1em;color:#f5a623;margin-bottom:3px}.sp-row div{word-break:break-word}
+.sp-row em{display:block;font-style:normal;font-size:.75rem;margin-top:2px}.sp-row em.ok{color:#6fcf97}.sp-row em.bad{color:#ff8a8a}.sp-row ul{margin:0;padding-left:1.1em}
+.sp-chips span{display:inline-block;background:#2a2a2a;border-radius:99px;padding:.15em .7em;margin:0 4px 4px 0;font-size:.78rem;color:#eee}
+body.seo-on h1,body.seo-on h2,body.seo-on h3{outline:2px dashed #f5a623;outline-offset:3px;position:relative}
+body.seo-on h1::before,body.seo-on h2::before,body.seo-on h3::before{content:attr(data-seo);position:absolute;top:-1.3em;left:0;background:#f5a623;color:#111;font:700 10px system-ui,sans-serif;padding:1px 6px;border-radius:3px;text-transform:none;letter-spacing:0}
 @media(max-width:980px){.dual-g{grid-template-columns:1fr}.hdr-in{grid-template-columns:1fr auto;gap:12px}.nav{grid-column:1/-1;order:5}}
 """
 
@@ -842,6 +1239,30 @@ body.t-concept{line-height:1.35}
 .t-concept .rev{border:0;background:#f6f6f6}.t-concept .faq summary{font-weight:700}
 .t-concept .b-panel,.t-concept .b-sum{border-radius:16px;background:#fff}.t-concept .b-opts button{border-radius:12px}.t-concept .b-steps button{border-radius:999px}
 .t-concept .chero,.t-concept .ghero{background:#f6f6f6}.t-concept .srow strong{color:#171717}
+.t-concept .nav>ul{gap:4px}.t-concept .nav>ul>li>a{padding:.62em 1.2em;border-radius:999px;transition:background .2s,color .2s}
+.t-concept .nav>ul>li>a:hover,.t-concept .has-mega:hover>a{background:#171717;color:#fff}
+.t-concept .mega{background:#fff;box-shadow:0 24px 40px rgba(0,0,0,.12)}
+.t-concept .btn{transition:background .2s,color .2s,border-color .2s,transform .15s}
+.t-concept .btn:hover{background:#fff;color:#171717;border-color:#171717;filter:none}
+.t-concept .btn-o:hover{background:#171717;color:#fff}.t-concept .btn-w:hover{background:#171717;color:#fff;border-color:#171717}
+.t-concept .btn:active{transform:scale(.97)}.t-concept .news .btn:hover{background:transparent;color:#fff;border-color:#fff}
+.t-concept .more{transition:background .2s,color .2s}.t-concept .more:hover{background:#171717;color:#fff}
+.hero-c .slides{position:relative;border-radius:16px;overflow:hidden;aspect-ratio:16/7;min-height:380px;background:#171717}
+.hero-c .slide{position:absolute;inset:0;opacity:0;transition:opacity .7s ease;pointer-events:none;aspect-ratio:auto;min-height:0;border-radius:0;background:none}
+.hero-c .slide.on{opacity:1;pointer-events:auto}.hero-c .slide .ph{position:absolute;inset:0;border-radius:0;aspect-ratio:auto}
+.hero-c .slide .ph img{object-position:center}
+.s-arr{position:absolute;bottom:22px;z-index:3;width:44px;height:44px;border-radius:50%;border:2px solid rgba(255,255,255,.75);background:transparent;color:#fff;font-size:1.2rem;cursor:pointer;transition:background .2s,color .2s}
+.s-arr:hover{background:#fff;color:#171717}.s-arr[data-prev]{left:24px}.s-arr[data-next]{right:24px}
+.hero-c .dots{display:flex;gap:8px;align-items:center}.dot{width:8px;height:8px;border-radius:99px;border:0;background:rgba(255,255,255,.5);padding:0;cursor:pointer;transition:width .3s,background .3s}
+.dot.on{background:#fff;width:24px}
+.t-concept .qadd{display:block;position:absolute;left:12px;right:12px;bottom:12px;padding:.75em;border-radius:999px;border:0;background:#fff;color:#171717;font:500 .86rem Inter,sans-serif;cursor:pointer;box-shadow:0 6px 18px rgba(0,0,0,.14);opacity:0;transform:translateY(8px);transition:opacity .25s,transform .25s,background .2s,color .2s}
+.t-concept .pcard:hover .qadd,.t-concept .qadd:focus-visible{opacity:1;transform:none}.t-concept .qadd:hover{background:#171717;color:#fff}
+.t-concept .pimg .ph img{transition:transform .5s}.t-concept .pcard:hover .pimg .ph img{transform:scale(1.04)}
+.t-concept .ctile{transition:transform .25s}.t-concept .ctile:hover{transform:translateY(-4px)}.t-concept .ctile .ph{transition:box-shadow .25s}.t-concept .ctile:hover .ph{box-shadow:0 14px 28px rgba(0,0,0,.1)}
+.t-concept .ct-go{display:inline-block;opacity:0;transform:translateX(-6px);transition:opacity .25s,transform .25s}.t-concept .ctile:hover .ct-go{opacity:1;transform:none}
+.t-concept .ic-copy h3{letter-spacing:-.03em}.t-concept .ind-head h2{font-size:clamp(2rem,3.4vw,2.8rem)}
+.t-concept .ph-img{background:#fafafa}
+.t-concept .icard .ph-img,.t-concept .mcard.dark .ph-img{background:#222}
 """
 
 CSS_RELEASE = r"""
@@ -873,6 +1294,8 @@ background:radial-gradient(ellipse at 50% 30%,#4a3f36 0%,#1d1815 45%,#0c0b0a 100
 .t-release .rev{border:0;background:#f4f4f4}.t-release .news{background:#111;color:#fff}.t-release .news .btn{background:#fff;color:#111;border-color:#fff}
 .t-release .ftr{background:#0d0d0d}.t-release .gband{background:#0d0d0d}.t-release .chero,.t-release .ghero{background:#f4f4f4}
 .t-release .b-panel,.t-release .b-sum{background:#fff}.t-release .srow strong{color:#111;font-weight:400}
+.t-release .icard{border-radius:0;aspect-ratio:4/5}.t-release .ic-plus{border-radius:0}.t-release .ic-copy h3{font-weight:400;letter-spacing:-.02em}
+.t-release .ind-head h2{font-weight:400}
 """
 
 CSS_PRESTIGE = r"""
@@ -905,6 +1328,8 @@ background:radial-gradient(ellipse at 50% 35%,#3a3a3a 0%,#161616 60%,#0b0b0b 100
 .t-prestige .ftr{background:#1c1c1c}.t-prestige .gband{background:#1c1c1c}.t-prestige .chero,.t-prestige .ghero{background:#e6e6e6}
 .t-prestige .faq summary{font-family:"Instrument Sans",sans-serif;font-weight:400;letter-spacing:.08em;text-transform:uppercase;font-size:.9rem}
 .t-prestige .srow strong{color:#1c1c1c;font-weight:400}.t-prestige .pimg{display:block}
+.t-prestige .icard{border-radius:0}.t-prestige .ic-plus{border-radius:0}
+.t-prestige .ic-copy h3{font-family:"Instrument Sans",sans-serif;font-weight:400;text-transform:uppercase;letter-spacing:.14em;font-size:1rem}
 """
 
 
@@ -1015,13 +1440,43 @@ if(bk){
   };
   draw();
 }
+/* Hero slider (Concept) */
+var sl=document.querySelector('[data-slider]');
+if(sl){var slides=[].slice.call(sl.querySelectorAll('.slide')),dots=[].slice.call(sl.querySelectorAll('.dot')),cur=0,timer=null;
+  var go=function(n){cur=(n+slides.length)%slides.length;slides.forEach(function(s,i){s.classList.toggle('on',i===cur)});dots.forEach(function(d,i){d.classList.toggle('on',i===cur)})};
+  var stop=function(){clearInterval(timer)},play=function(){stop();timer=setInterval(function(){go(cur+1)},6000)};
+  sl.querySelector('[data-prev]').onclick=function(){go(cur-1);play()};sl.querySelector('[data-next]').onclick=function(){go(cur+1);play()};
+  dots.forEach(function(d,i){d.onclick=function(){go(i);play()}});sl.addEventListener('mouseenter',stop);sl.addEventListener('mouseleave',play);play();}
+/* Toast and quick add */
+var toastEl=document.querySelector('[data-toast]');
+var toast=function(t){if(!toastEl)return;toastEl.textContent=t;toastEl.hidden=false;clearTimeout(toastEl._t);toastEl._t=setTimeout(function(){toastEl.hidden=true},2200)};
+document.addEventListener('click',function(e){var q=e.target.closest('[data-qadd]');if(q){e.preventDefault();var c=document.querySelector('.cart span');if(c)c.textContent=(+c.textContent)+1;toast('Added to cart (demo)')}});
+/* SEO view panel */
+var seoBtn=document.querySelector('[data-seo-toggle]'),seoPanel=document.querySelector('[data-seo-panel]');
+if(seoBtn&&seoPanel){
+  var sd={};try{sd=JSON.parse(document.getElementById('seo-data').textContent)}catch(e){}
+  var metaEl=document.querySelector('meta[name=description]'),h1El=document.querySelector('h1');
+  var il=0,el=0;[].forEach.call(document.querySelectorAll('main a[href]'),function(a){var h=a.getAttribute('href');if(a.hasAttribute('data-modal')||h==='#')return;if(/^https?:/.test(h))el++;else il++});
+  var imgs=document.querySelectorAll('main img'),noAlt=[].filter.call(imgs,function(i){return !i.alt}).length;
+  var chip=function(a){return '<div class="sp-chips">'+(a||[]).map(function(x){return '<span>'+x+'</span>'}).join('')+'</div>'};
+  var cnt=function(s,max){return '<em class="'+(s.length>max?'bad':'ok')+'">'+s.length+' characters (aim for '+max+' or fewer)</em>'};
+  var row=function(l,v,e){return '<div class="sp-row"><span>'+l+'</span><div>'+v+'</div>'+(e||'')+'</div>'};
+  var ttl=document.title,mt=metaEl?metaEl.content:'';
+  seoPanel.querySelector('[data-seo-body]').innerHTML=
+    row('Title tag',ttl,cnt(ttl,60))+row('Meta description',mt,cnt(mt,155))+row('H1',h1El?h1El.textContent:'')+row('Suggested live URL',sd.path||'')+
+    row('Primary keyword',sd.kw||'')+row('Secondary keywords',chip(sd.sec))+row('Schema',chip(sd.schema))+
+    row('Links in main content',il+' internal, '+el+' external')+row('Images',imgs.length+' ('+noAlt+' missing alt text)')+
+    row('Strategy notes','<ul>'+(sd.notes||[]).map(function(x){return '<li>'+x+'</li>'}).join('')+'</ul>');
+  seoBtn.onclick=function(){var on=seoPanel.hidden;seoPanel.hidden=!on;document.body.classList.toggle('seo-on',on);seoBtn.setAttribute('aria-pressed',on?'true':'false');seoBtn.textContent=on?'Hide SEO view':'SEO view';
+    [].forEach.call(document.querySelectorAll('h1,h2,h3'),function(h){h.setAttribute('data-seo',h.tagName)})};
+}
 /* Product page */
 var pp=document.querySelector('[data-price]'),qty=document.querySelector('[data-qty]');
 if(pp&&qty){
   var unit=parseFloat(pp.dataset.base)||0;
   function up(){var add=0;[].forEach.call(document.querySelectorAll('[data-opt]:checked'),function(r){add+=+r.dataset.add||0});pp.textContent=money((unit+add)*(+qty.value||1))}
   qty.addEventListener('input',up);document.addEventListener('change',up);
-  var add=document.querySelector('[data-add]');if(add)add.onclick=function(){var c=document.querySelector('.cart span');if(c)c.textContent=(+c.textContent)+(+qty.value||1);add.textContent='Added (demo)'};
+  var add=document.querySelector('[data-add]');if(add)add.onclick=function(){var c=document.querySelector('.cart span');if(c)c.textContent=(+c.textContent)+(+qty.value||1);add.textContent='Added (demo)';toast('Added to cart (demo)')};
 }
 })();
 
@@ -1045,7 +1500,7 @@ th,td{padding:10px 12px;border-bottom:1px solid var(--line);text-align:left;vert
 </style></head><body><div class="w">
 <h1>Store Displays&reg;: three visual concepts</h1>
 <p class="lead">Static mockups for the redesign discussion, built from the SmartSites x Store Display kickoff call (13 Nov 2026) and the live storedisplays.com. Each concept uses the same content, drawn from the live storedisplays.com (real products, SKUs, prices, links and images) plus clearly marked samples, so the client compares layout and feel, not copy.</p>
-<div class="warn"><strong>Read this first.</strong> These are not the real Shopify themes and not a build. They are HTML/CSS mockups modeled on each theme's public demo store (typography, colours, header, hero and section order), without the theme's code or photography. Product names, SKUs, listing prices, links and images come from the live site and are hot-linked from it. Reviews, most copy, the industry pages and the gondola builder are SAMPLE or CONCEPT. The real build happens in Shopify once the client store exists.</div>
+<div class="warn"><strong>Read this first.</strong> These are not the real Shopify themes and not a build. They are HTML/CSS mockups modeled on each theme's public demo store (typography, colours, header, hero and section order), without the theme's code or photography. Product names, SKUs, listing prices, links and images come from the live site; the images are saved here at full resolution. Reviews, most copy, the industry pages and the gondola builder are SAMPLE or CONCEPT. The real build happens in Shopify once the client store exists.</div>
 <div class="cards">
 @@CARDS@@
 </div>
@@ -1063,6 +1518,9 @@ th,td{padding:10px 12px;border-bottom:1px solid var(--line);text-align:left;vert
 <tr><td>Bulk and volume pricing</td><td>Request form, plus the live volume pricing page</td><td>Same</td><td>Same</td></tr>
 <tr><td>Shop by industry pages</td><td>8 concept industry pages with recommended products</td><td>Same</td><td>Same</td></tr>
 <tr><td>10% newsletter capture</td><td>Popup and a footer band</td><td>Same</td><td>Same</td></tr>
+<tr><td>SEO strategy visible to the client</td><td>SEO view panel on every page: title, description, H1, keywords, schema, links</td><td>Same</td><td>Same</td></tr>
+<tr><td>Shop by industry like the theme</td><td>Tall photo cards with a plus that opens, plus card-style mega menus</td><td>Square photo cards</td><td>Square cards, spaced caps</td></tr>
+<tr><td>Interactive feel</td><td>Rotating hero, pill nav, quick add, hover reveals</td><td>Hover reveals on cards</td><td>Hover reveals on cards</td></tr>
 </table>
 <p class="lead" style="margin-top:22px">Still to do for the real build: confirm the 5 non-ecommerce pages and industry list from the workbook, the client's new logo and colors, a real configurator (app or custom code), a real booking tool for appointments, quantity pricing (marked Plus on the theme pages, needs checking), and the shipping zone approach.</p>
 </div></body></html>"""
@@ -1072,12 +1530,15 @@ def main():
     ap = argparse.ArgumentParser(description="Generate three static Store Displays&reg; vision demos (Concept, Release, Prestige).")
     ap.add_argument("out", nargs="?", default="demo", help="output directory (default: ./demo)")
     out = ap.parse_args().out
+    img_dir = os.path.join(out, "assets", "img")
+    if os.path.isdir(img_dir):
+        LOCAL.update(os.listdir(img_dir))
     # Remove only what this script generates, never other files in the output folder.
-    for name in ["assets"] + list(THEMES):
+    for name in list(THEMES):
         shutil.rmtree(os.path.join(out, name), ignore_errors=True)
     if os.path.isfile(os.path.join(out, "index.html")):
         os.remove(os.path.join(out, "index.html"))
-    os.makedirs(os.path.join(out, "assets"))
+    os.makedirs(os.path.join(out, "assets"), exist_ok=True)
     with open(os.path.join(out, "assets", "app.js"), "w", encoding="utf-8") as f:
         f.write(APP_JS)
     css = {"concept": CSS_CONCEPT, "release": CSS_RELEASE, "prestige": CSS_PRESTIGE}

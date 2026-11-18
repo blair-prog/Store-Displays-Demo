@@ -102,13 +102,43 @@ if(bk){
   };
   draw();
 }
+/* Hero slider (Concept) */
+var sl=document.querySelector('[data-slider]');
+if(sl){var slides=[].slice.call(sl.querySelectorAll('.slide')),dots=[].slice.call(sl.querySelectorAll('.dot')),cur=0,timer=null;
+  var go=function(n){cur=(n+slides.length)%slides.length;slides.forEach(function(s,i){s.classList.toggle('on',i===cur)});dots.forEach(function(d,i){d.classList.toggle('on',i===cur)})};
+  var stop=function(){clearInterval(timer)},play=function(){stop();timer=setInterval(function(){go(cur+1)},6000)};
+  sl.querySelector('[data-prev]').onclick=function(){go(cur-1);play()};sl.querySelector('[data-next]').onclick=function(){go(cur+1);play()};
+  dots.forEach(function(d,i){d.onclick=function(){go(i);play()}});sl.addEventListener('mouseenter',stop);sl.addEventListener('mouseleave',play);play();}
+/* Toast and quick add */
+var toastEl=document.querySelector('[data-toast]');
+var toast=function(t){if(!toastEl)return;toastEl.textContent=t;toastEl.hidden=false;clearTimeout(toastEl._t);toastEl._t=setTimeout(function(){toastEl.hidden=true},2200)};
+document.addEventListener('click',function(e){var q=e.target.closest('[data-qadd]');if(q){e.preventDefault();var c=document.querySelector('.cart span');if(c)c.textContent=(+c.textContent)+1;toast('Added to cart (demo)')}});
+/* SEO view panel */
+var seoBtn=document.querySelector('[data-seo-toggle]'),seoPanel=document.querySelector('[data-seo-panel]');
+if(seoBtn&&seoPanel){
+  var sd={};try{sd=JSON.parse(document.getElementById('seo-data').textContent)}catch(e){}
+  var metaEl=document.querySelector('meta[name=description]'),h1El=document.querySelector('h1');
+  var il=0,el=0;[].forEach.call(document.querySelectorAll('main a[href]'),function(a){var h=a.getAttribute('href');if(a.hasAttribute('data-modal')||h==='#')return;if(/^https?:/.test(h))el++;else il++});
+  var imgs=document.querySelectorAll('main img'),noAlt=[].filter.call(imgs,function(i){return !i.alt}).length;
+  var chip=function(a){return '<div class="sp-chips">'+(a||[]).map(function(x){return '<span>'+x+'</span>'}).join('')+'</div>'};
+  var cnt=function(s,max){return '<em class="'+(s.length>max?'bad':'ok')+'">'+s.length+' characters (aim for '+max+' or fewer)</em>'};
+  var row=function(l,v,e){return '<div class="sp-row"><span>'+l+'</span><div>'+v+'</div>'+(e||'')+'</div>'};
+  var ttl=document.title,mt=metaEl?metaEl.content:'';
+  seoPanel.querySelector('[data-seo-body]').innerHTML=
+    row('Title tag',ttl,cnt(ttl,60))+row('Meta description',mt,cnt(mt,155))+row('H1',h1El?h1El.textContent:'')+row('Suggested live URL',sd.path||'')+
+    row('Primary keyword',sd.kw||'')+row('Secondary keywords',chip(sd.sec))+row('Schema',chip(sd.schema))+
+    row('Links in main content',il+' internal, '+el+' external')+row('Images',imgs.length+' ('+noAlt+' missing alt text)')+
+    row('Strategy notes','<ul>'+(sd.notes||[]).map(function(x){return '<li>'+x+'</li>'}).join('')+'</ul>');
+  seoBtn.onclick=function(){var on=seoPanel.hidden;seoPanel.hidden=!on;document.body.classList.toggle('seo-on',on);seoBtn.setAttribute('aria-pressed',on?'true':'false');seoBtn.textContent=on?'Hide SEO view':'SEO view';
+    [].forEach.call(document.querySelectorAll('h1,h2,h3'),function(h){h.setAttribute('data-seo',h.tagName)})};
+}
 /* Product page */
 var pp=document.querySelector('[data-price]'),qty=document.querySelector('[data-qty]');
 if(pp&&qty){
   var unit=parseFloat(pp.dataset.base)||0;
   function up(){var add=0;[].forEach.call(document.querySelectorAll('[data-opt]:checked'),function(r){add+=+r.dataset.add||0});pp.textContent=money((unit+add)*(+qty.value||1))}
   qty.addEventListener('input',up);document.addEventListener('change',up);
-  var add=document.querySelector('[data-add]');if(add)add.onclick=function(){var c=document.querySelector('.cart span');if(c)c.textContent=(+c.textContent)+(+qty.value||1);add.textContent='Added (demo)'};
+  var add=document.querySelector('[data-add]');if(add)add.onclick=function(){var c=document.querySelector('.cart span');if(c)c.textContent=(+c.textContent)+(+qty.value||1);add.textContent='Added (demo)';toast('Added to cart (demo)')};
 }
 })();
 
