@@ -31,6 +31,16 @@ MOCK = {
 }
 
 
+# Category data scraped from the live category pages (names, SKUs, prices, image paths, sub-categories)
+CATS = {}
+_cats_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), "categories.json")
+if os.path.isfile(_cats_file):
+    with open(_cats_file, encoding="utf-8") as _f:
+        CATS = json.load(_f)
+for _slug in CATS:
+    MOCK["/product-category/%s/" % _slug] = "cat-%s.html" % _slug
+
+
 def local_name(path):
     base = os.path.basename(path)
     orig = re.sub(r"-\d+x\d+(?=\.\w+$)", "", base)
@@ -59,8 +69,9 @@ def a_attrs(h):
 
 # Header navigation. The third value says which mega menu the item opens (None for a plain link).
 NAV = [
-    ("Shop All Products", "collection.html", "products"),
+    ("Display Cases", "cat-counters-showcases.html", None),
     ("Gondola Shelving", "gondola.html", None),
+    ("Store Fixtures &amp; Displays", "collection.html", "products"),
     ("Custom Millwork &amp; Showcases", U + "/custom-millwork-showcases/", None),
     ("Shop by Industry", "industries.html", "industry"),
     ("Free Store Layouts", "layouts.html", None),
@@ -71,12 +82,11 @@ NAV = [
 
 # The live site's 20 product categories, grouped into list-style mega-menu columns
 MEGA = [
-    ("Shelving &amp; Systems", [("Gondola Shelving", "/gondola-shelving/"), ("Shelving", "/product-category/shelving/"),
-                               ("Wall Standards", "/product-category/wall-standards/"), ("Retail Systems", "/product-category/retail-systems/")]),
-    ("Showcases &amp; Counters", [("Display Showcases &amp; Counters", "/product-category/counters-showcases/"),
-                                 ("Countertop Displays", "/product-category/countertop-displays/"),
-                                 ("Glass &amp; Wooden Cubby Displays", "/product-category/glass-wooden-cubby-displays/"),
-                                 ("Cube Displays", "/product-category/cube-displays/")]),
+    ("Shelving &amp; Systems", [("Shelving", "/product-category/shelving/"), ("Wall Standards", "/product-category/wall-standards/"),
+                               ("Retail Systems", "/product-category/retail-systems/")]),
+    ("Counters &amp; Cubbies", [("Countertop Displays", "/product-category/countertop-displays/"),
+                               ("Glass &amp; Wooden Cubby Displays", "/product-category/glass-wooden-cubby-displays/"),
+                               ("Cube Displays", "/product-category/cube-displays/")]),
     ("Slatwall &amp; Gridwall", [("Slatwall", "/product-category/slatwall/"), ("Gridwall", "/product-category/gridwall/"),
                                 ("Pegboard Hooks", "/product-category/pegboard-hooks/")]),
     ("Racks &amp; Tables", [("Apparel Racks", "/product-category/apparel-racks/"), ("Floor Merchandisers", "/product-category/floor-merchandisers/"),
@@ -420,8 +430,11 @@ def mcard(name, blurb, img, h, fit, dark=False):
 
 def mega_cards(kind):
     if kind == "products":
-        cards = "".join(mcard(n.replace("Display Showcases &amp; Counters", "Showcases &amp; Counters"), b, i, href(p), f) for n, b, i, p, f in CATEGORY_TILES[:5])
-        cards += mcard("All products", "Shop every category.", HERO, "collection.html", "cover", True)
+        store = [("Slatwall", "slatwall", "Panels, hooks and shelves for any wall."), ("Gridwall", "gridwall", "Flexible panels for varied merchandise."),
+                 ("Apparel Racks", "apparel-racks", "Hanging and folding space for boutiques."), ("Mannequins", "mannequins", "Forms that put the outfit in front of shoppers."),
+                 ("Retail Systems", "retail-systems", "Modular systems for full store builds.")]
+        cards = "".join(mcard(n, b, CATS[s]["items"][0]["img"], href("/product-category/%s/" % s), "contain") for n, s, b in store if s in CATS)
+        cards += mcard("All store fixtures", "Browse every category.", HERO, "collection.html", "cover", True)
     else:
         pick = ["apparel-stores", "jewelry-stores", "liquor-stores", "supermarkets"]
         cards = "".join(mcard(n, b, IND_IMG[s], "industry-%s.html" % s, "cover") for s, n, _, b, _ in IND if s in pick)
@@ -430,9 +443,9 @@ def mega_cards(kind):
 
 
 HEADER_NAV = {
-    "concept": ["Shop All Products", "Gondola Shelving", "Custom Millwork &amp; Showcases", "Shop by Industry", "Free Store Layouts", "Contact Us"],
-    "release": ["Shop All Products", "Shop by Industry", "Free Store Layouts", "Contact Us"],
-    "prestige": ["Shop All Products", "Gondola Shelving", "Shop by Industry", "Contact Us"],
+    "concept": ["Display Cases", "Gondola Shelving", "Store Fixtures &amp; Displays", "Shop by Industry", "Free Store Layouts", "Contact Us"],
+    "release": ["Display Cases", "Gondola Shelving", "Store Fixtures &amp; Displays", "Shop by Industry", "Contact Us"],
+    "prestige": ["Display Cases", "Gondola Shelving", "Store Fixtures &amp; Displays", "Shop by Industry", "Contact Us"],
 }
 
 _SVG = 'viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"'
@@ -456,7 +469,7 @@ def header(theme, page):
         cls = ' class="has-mega"' if panel else ""
         items.append('<li%s><a href="%s"%s>%s</a>%s</li>' % (cls, h, a_attrs(h), label, panel))
     nav = '<nav class="nav" aria-label="Main"><ul>%s</ul></nav>' % "".join(items)
-    icons = ('<div class="hicons"><a href="#" aria-label="Search">%s</a><a href="#" aria-label="Account">%s</a>'
+    icons = ('<div class="hicons"><button class="hmenu" type="button" data-hmenu aria-label="Menu" aria-expanded="false">&#9776;</button><a href="#" aria-label="Search">%s</a><a href="#" aria-label="Account">%s</a>'
              '<a class="cart" href="#" aria-label="Cart, 0 items">%s<span>0</span></a></div>') % (
         ICON_SVG["search"], ICON_SVG["user"], ICON_SVG["cart"])
     if theme == "concept":
@@ -473,6 +486,8 @@ def header(theme, page):
         ann = ('<div class="ann"><span>Same-day shipping on Ground orders placed by 2 pm ET</span>'
                '<span><a href="#" data-modal="ship">Calculate shipping</a> &nbsp;&middot;&nbsp; <a href="layouts.html">Free layout plan</a></span></div>')
         inner, cls = nav + wordmark() + icons, "hdr"
+    if page.startswith("cat-"):
+        cls = "hdr hdr-over"
     return '%s%s<header class="%s"><div class="hdr-in">%s</div></header>' % (concept_bar(theme, page), ann, cls, inner)
 
 
@@ -614,7 +629,7 @@ def sec_intro(theme):
     return ('<section class="sec intro"><div class="wrap narrow center-t"><h2>Store displays that capture attention</h2>'
             '<p>Whether opening a new boutique or redesigning a grocery store, we have everything you need: top-quality products, '
             'best customer service, affordable pricing and fast shipping.</p>'
-            '<a class="btn" href="collection.html">Shop all products</a></div></section>')
+            '<a class="btn" href="collection.html">Shop store fixtures</a></div></section>')
 
 
 def sec_dualtiles(theme):
@@ -760,7 +775,7 @@ def builder():
             '<button class="btn btn-sm" data-next type="button">Next</button></div></div>'
             '<aside class="b-sum" aria-live="polite"><h3>Your run</h3><ul data-sum></ul>'
             '<div class="b-total"><span>Estimated total</span><strong data-total>$0</strong><small>SAMPLE pricing. The live site lists units from $107.</small></div>'
-            '<a class="btn" href="industries.html#contact" data-cta>Request a quote (demo)</a>'
+            '<button class="btn" type="button" data-cta data-qadd>Add to cart (demo)</button>'
             '<a class="btn btn-o" href="layouts.html">Get a free layout plan</a></aside></div>')
 
 
@@ -814,7 +829,7 @@ def page_gondola(theme):
 
 def page_collection(theme):
     prods = PRODUCTS
-    bc = [("Home", "index.html", "/"), ("Shop all products", "collection.html", "/shop/")]
+    bc = [("Home", "index.html", "/"), ("Store fixtures &amp; displays", "collection.html", "/shop/")]
     kinds = [("case", "Showcases &amp; counters"), ("gondola", "Gondola shelving"), ("slatwall", "Slatwall"), ("rack", "Apparel racks"), ("form", "Mannequins")]
     finishes = ["Black", "White", "Silver", "Bronze", "Antique White"]
     f_kind = "".join('<label><input type="checkbox" data-f="kind" value="%s"> %s</label>' % x for x in kinds)
@@ -827,7 +842,7 @@ def page_collection(theme):
             '<details open><summary>Finish / color</summary>%s</details><details open><summary>Price</summary>%s</details>'
             '<button class="btn btn-o btn-sm" type="button" data-clear>Clear filters</button></aside>') % (f_kind, f_fin, f_price)
     faq = FAQ[:4]
-    s = S("/shop/", "Shop All Store Displays & Retail Fixtures | Store Displays®",
+    s = S("/shop/", "Store Fixtures & Displays | Store Displays®",
           "Shop store displays and retail fixtures: gondola shelving, display showcases, slatwall, gridwall, apparel racks and mannequins. Prices shown, ships fast.",
           "retail store displays", ["store fixtures for sale", "display cases for retail stores", "slatwall panels", "clothing racks"],
           [ld_bc(bc), ld_list(prods), ld_faq(faq)],
@@ -835,7 +850,7 @@ def page_collection(theme):
            "Color and size are variants, so the roughly 360 live categories collapse into filters instead of thin category pages.",
            "Buying-guide content sits below the grid and links to the gondola, industry and layout pages.", "ItemList and FAQPage schema added."])
     body = (crumbs(bc) +
-            '<section class="chero"><div class="wrap"><h1>Shop All Store Displays</h1>'
+            '<section class="chero"><div class="wrap"><h1>Store Fixtures &amp; Displays</h1>'
             '<p>Browse store fixtures by type, finish and price. Products below are real items from storedisplays.com, with their SKUs and listing prices.</p></div></section>'
             '<section class="sec"><div class="wrap clayout">' + side +
             '<div class="cmain"><div class="ctool"><span data-count>%d products</span>'
@@ -854,7 +869,7 @@ def page_collection(theme):
 def page_product(theme):
     p = PRODUCTS[0]
     rel = [x for x in PRODUCTS if x["kind"] == "case" and x["id"] != p["id"]][:4]
-    bc = [("Home", "index.html", "/"), ("Shop all products", "collection.html", "/shop/"),
+    bc = [("Home", "index.html", "/"), ("Store fixtures &amp; displays", "collection.html", "/shop/"),
           ("Display showcases &amp; counters", "collection.html", "/product-category/counters-showcases/"), (p["name"], "product.html", p["path"])]
 
     def opts(name, rows):
@@ -1021,10 +1036,171 @@ def page_industry(theme, slug):
     return shell(theme, s, page, body)
 
 
+# ---- Category pages (Concept collection layout) ---------------------------------
+CAT_HERO = {
+    "shelving": "supermarket-2.jpg", "wall-standards": "pharmacies.jpg", "retail-systems": "apparel-stores.jpg",
+    "counters-showcases": "homepage-hero-3.1.jpg", "countertop-displays": "pharmacies.jpg", "glass-wooden-cubby-displays": "jewelry-store-2.jpg",
+    "cube-displays": "beauty-supply.jpg", "slatwall": "beauty-supply.jpg", "gridwall": "popup-store.jpg", "pegboard-hooks": "smoke-vape-shop.jpg",
+    "apparel-racks": "apparel-stores.jpg", "floor-merchandisers": "popup-store.jpg", "display-tables": "apparel-stores.jpg",
+    "mannequins": "apparel-stores.jpg", "jewelry-handbag-displays": "jewelry-store-2.jpg", "shoe-displays": "apparel-stores.jpg",
+    "hat-eyewear-displays": "beauty-supply.jpg", "card-and-magazine-displays": "pharmacies.jpg", "general-store-operations": "supermarket-2.jpg",
+    "candy-nut-storage-containers": "supermarket-2.jpg", "vintage-style-displays": "popup-store.jpg",
+}
+FINISH_WORDS = ["Black", "White", "Silver", "Chrome", "Bronze", "Cream", "Gold", "Brown", "Gray", "Grey", "Natural", "Cherry", "Maple", "Walnut", "Red", "Blue", "Clear"]
+
+
+def cat_finish(name):
+    low = name.lower()
+    for f in FINISH_WORDS:
+        if re.search(r"\b" + f.lower() + r"\b", low):
+            return "Gray" if f == "Grey" else f
+    return None
+
+
+def cat_size(name):
+    m = re.search(r"\d+(?:\.\d+)?\s?(?:[′'\"″]|-?in(?:ch)?\b)\s*(?:[xX×]\s*\d+(?:\.\d+)?\s*(?:[′'\"″]|-?in(?:ch)?\b)?)?\s*[LWHD]?", name)
+    return m.group(0).strip() if m else None
+
+
+def cat_card(it, cname, slug):
+    name = html.escape(it["name"], quote=False)
+    fin = cat_finish(it["name"])
+    size = cat_size(it["name"])
+    if fin:
+        sv, sl = fin, "Finish"
+    elif size:
+        sv, sl = html.escape(size, quote=False), "Size"
+    else:
+        sv, sl = cname, "Category"
+    price = money(it["price"]) if it["price"] is not None else "See product"
+    if it["reg"] and it["price"] and it["reg"] > it["price"]:
+        badge = '<span class="cc-badge sale">Save %d%%</span>' % round((1 - it["price"] / it["reg"]) * 100)
+        pr = '<span class="cc-price sale">%s<s>%s</s></span>' % (price, money(it["reg"]))
+    else:
+        badge = ""
+        pr = '<span class="cc-price">%s</span>' % price
+    h = "product.html" if it["url"] == "/product/extra-vision-black-4/" else U + it["url"]
+    ex = a_attrs(h)
+    sw = '<div class="cc-sw"><i class="sw sw-%s" title="%s"></i></div>' % (fin.lower(), fin) if fin else ""
+    return ('<article class="pcard ccard" data-kind="%s" data-fin="%s" data-price="%d" data-new="0">'
+            '<a class="cc-img" href="%s"%s>%s%s</a><div class="cc-body"><span class="cc-brand">%s</span>'
+            '<div class="cc-row"><a class="cc-name" href="%s"%s>%s</a>%s</div>%s</div>'
+            '<div class="cc-specs"><div><i class="cc-ic"></i><span><b>%s</b><small>SKU</small></span></div>'
+            '<div><i class="cc-ic"></i><span><b>%s</b><small>%s</small></span></div></div>'
+            '<button class="qadd" type="button" data-qadd>Quick add</button></article>'
+            ) % (slug, fin.lower() if fin else "", round(it["price"] or 0), h, ex, badge, pic(it["img"], it["name"], "", "contain"),
+                 cname.upper(), h, ex, name, pr, sw, html.escape(it["sku"] or "n/a", quote=False), sv, sl)
+
+
+def cat_blurb(name, subs):
+    names = [html.escape(s, quote=False) for s, _ in subs[:3]]
+    lead = "Shop %s at Store Displays&reg;" % name.lower()
+    if names:
+        lead += ", including " + ", ".join(names[:-1]) + (" and " if len(names) > 1 else "") + names[-1]
+    return (lead + ". Prices and SKUs are shown on every card, and Ground orders placed by 2 pm ET ship the same day. "
+            "Not sure what fits your store? Request a free layout plan and the team will help.")
+
+
+def page_category(theme, slug):
+    c = CATS[slug]
+    name = html.escape(c["h1"], quote=False)
+    path = "/product-category/%s/" % slug
+    page = "cat-%s.html" % slug
+    items = c["items"]
+    subs = [x for x in c["subs"] if not cat_finish(x[0])]  # colour options become variants and filters, as agreed on the call
+    total = c["total"]
+    live = U + path
+    shown = total if total else len(items)
+    top = slug == "counters-showcases"
+    bc = [("Home", "index.html", "/")] + ([] if top else [("Store fixtures &amp; displays", "collection.html", "/shop/")]) + [(name, page, path)]
+    hero_img = CAT_HERO.get(slug, "apparel-stores.jpg")
+    tabs = '<a class="on" href="#">All %s<sup>%s</sup></a>' % (name, ("%d" % shown) if total else "%d+" % len(items))
+    for s_name, s_slug in subs[:5]:
+        tabs += '<i>/</i><a href="%s/product-category/%s/%s/" target="_blank" rel="noopener">%s</a>' % (U, slug, s_slug, html.escape(s_name, quote=False))
+    fins = []
+    for it in items:
+        f = cat_finish(it["name"])
+        if f and f not in fins:
+            fins.append(f)
+    f_fin = "".join('<label><input type="checkbox" data-f="fin" value="%s"> <i class="sw sw-%s"></i> %s</label>' % (f.lower(), f.lower(), f) for f in fins) or '<p class="note">No finish options in this selection.</p>'
+    f_price = ('<label><input type="radio" name="pr" data-f="price" value="0-100"> Under $100</label>'
+               '<label><input type="radio" name="pr" data-f="price" value="100-500"> $100 to $500</label>'
+               '<label><input type="radio" name="pr" data-f="price" value="500-99999"> Over $500</label>'
+               '<label><input type="radio" name="pr" data-f="price" value="" checked> Any price</label>')
+    cards = [cat_card(it, name, slug) for it in items]
+    promo = ('<a class="promo-card" href="layouts.html">%s<div class="pc-copy"><i class="pc-ic"></i><h3>Free store layouts</h3>'
+             '<p>Not sure what fits your space? Our team will plan your floor, free.</p><span class="btn btn-ow">Request a layout <b>&rarr;</b></span></div></a>'
+             ) % pic("popup-store.jpg" if hero_img != "popup-store.jpg" else "supermarket-2.jpg", "Store layout planning", "", "cover")
+    cards.insert(min(7, len(cards)), promo)
+    tip = ('<div class="cc-tip"><div><strong>Not sure which one fits?</strong><p>Call %s or request a free layout plan, and the team will match fixtures to your space.</p></div>'
+           '<a class="btn" href="layouts.html">Free layout plan</a></div>') % PHONE1
+    cards.insert(min(8, len(cards)), tip)
+    pager = ""
+    if total and total > 32:
+        n_pages = -(-total // 32)
+        nums = "".join('<a href="%spage/%d/" target="_blank" rel="noopener">%d</a>' % (live, k, k) for k in range(2, min(n_pages, 3) + 1))
+        pager = ('<div class="pager"><a class="on" href="#" aria-current="page">1</a>%s'
+                 '<a class="next" href="%spage/2/" target="_blank" rel="noopener">Next &rarr;</a></div>') % (nums, live)
+    seo_txt = cat_blurb(name, subs)
+    descr = plain(seo_txt)
+    faq = [("What %s does Store Displays carry?" % plain(name).lower(), "Browse %s on the live site, with the price and SKU on every item. Sub-categories include %s." % (
+               ("%d products" % total) if total else "the full range", ", ".join(plain(html.escape(s, quote=False)) for s, _ in subs[:3]) or "the options shown above")),
+           ("How fast do orders ship?", "Order by 2 pm ET and Ground orders ship the same day; LTL orders ship the next day."),
+           ("Can you help me plan my store layout?", "Yes. Request a free layout plan or book a call, and the team will help match fixtures to your floor.")]
+    sub_names = [plain(html.escape(s, quote=False)) for s, _ in subs[:3]]
+    meta = "Shop %s with prices shown" % name.lower()
+    if sub_names:
+        meta += ", including " + ", ".join(sub_names[:2]) + (" and " + sub_names[2] if len(sub_names) > 2 else "")
+    meta += ". Same-day Ground shipping on orders by 2 pm ET."
+    if len(plain(meta)) > 155:
+        meta = "Shop %s with prices shown. Same-day Ground shipping on orders placed by 2 pm ET." % name.lower()
+    s = S(path, "%s | Store Displays®" % name, meta, name.lower().replace("&amp;", "&"),
+          [x.lower() for x in sub_names] + [name.lower().replace("&amp;", "&") + " for sale"],
+          [ld_bc(bc), {"@context": "https://schema.org", "@type": "CollectionPage", "name": plain(name), "url": U + path, "description": descr},
+           ld_list([dict(name=i["name"], path=i["url"]) for i in items]), ld_faq(faq)],
+          ["Product-matched H1, sub-category links and a text block below the grid, as agreed on the kickoff call.",
+           "Sub-categories come from the live category's own navigation, so they match what the store already organizes.",
+           "Cards show real SKUs, prices and sale prices from the live listing; the layout follows the Concept collection template.",
+           "The text block is template-based draft copy, to be replaced by written category copy after keyword research."])
+    trust = "".join('<div><i class="tr-ic"></i><span><b>%s</b><small>%s</small></span></div>' % x for x in [
+        ("Customer service", "Call %s and speak with a knowledgeable team member." % PHONE1),
+        ("Same-day shipping", "Order by 2 pm ET and Ground orders ship the same day."),
+        ("Volume pricing", "Request bulk pricing on larger orders."),
+        ("Free store layouts", "Our team will plan your floor, free.")])
+    body = ('<section class="cat-hero">%s<div class="wrap cat-hero-in"><nav class="cat-crumbs" aria-label="Breadcrumb"><a href="index.html" aria-label="Home">&#8962;</a>'
+            '<a href="collection.html">Store Fixtures &amp; Displays</a><span>%s</span></nav><h1>%s</h1></div></section>'
+            '<section class="cat-main"><div class="wrap-w">'
+            '<div class="cat-tools"><button class="pill" type="button" data-filter-toggle aria-expanded="false"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" '
+            'stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><path d="M4 7h10M18 7h2M4 17h2M10 17h10"/><circle cx="16" cy="7" r="2"/><circle cx="8" cy="17" r="2"/></svg><span>Show filters</span></button>'
+            '<nav class="cat-tabs" aria-label="Sub-categories">%s</nav>'
+            '<a class="cat-viewall" href="%s" target="_blank" rel="noopener">View all %s on storedisplays.com</a>'
+            '<label class="pill sortpill"><select data-sort aria-label="Sort"><option value="">Best selling</option><option value="lo">Price: low to high</option>'
+            '<option value="hi">Price: high to low</option></select></label></div>'
+            '<div class="cat-filters" data-filters hidden><div><h4>Finish</h4>%s</div><div><h4>Price</h4>%s</div>'
+            '<div><button class="btn btn-o btn-sm" type="button" data-clear>Clear filters</button></div></div>'
+            '<p class="cat-count"><span data-count>%d products</span> shown%s</p>'
+            '<div data-grid><div class="pgrid cc-grid">%s</div></div><p class="empty" data-empty hidden>No products match these filters.</p>%s'
+            '<div class="center"><a class="btn btn-o" href="%s" target="_blank" rel="noopener">See the full range on storedisplays.com</a></div></div></section>'
+            '<section class="cat-seo" style="background-image:linear-gradient(rgba(14,14,14,.86),rgba(14,14,14,.93)),url(%s)"><div class="wrap"><i class="cs-ic"></i>'
+            '<span class="cs-label">%s</span><p>%s</p><p class="note-d">Draft copy for SEO review, built from the live category and its sub-categories.</p></div></section>'
+            '<section class="trust"><div class="wrap">%s</div></section>'
+            ) % (pic(hero_img, name + " store displays", "", "cover"), name, name, tabs, live, ("%d" % shown) if total else "all", f_fin, f_price, len(items),
+                 (" of %d on the live site" % total) if total else " (first page)", "".join(cards), pager, live, img_src(hero_img), name.upper(), seo_txt, trust)
+    intro = 'Browse %s with prices and SKUs on every card. Ground orders placed by 2 pm ET ship the same day, and the team can plan your layout for free.' % name.lower()
+    body = body.replace('<div class="cat-tools">', '<p class="cat-intro">' + intro + '</p><div class="cat-tools">', 1)
+    faq_html = ('<section class="sec alt"><div class="wrap narrow">' + section_head("FAQ", "Questions about " + name.lower(), None) + faq_block(faq) + '</div></section>')
+    body = body.replace('<section class="cat-seo"', faq_html + '<section class="cat-seo"', 1)
+    if top:
+        body = body.replace('<a href="collection.html">Store Fixtures &amp; Displays</a>', '', 1)
+    return shell(theme, s, page, body)
+
+
 PAGES = {"index.html": page_home, "gondola.html": page_gondola, "collection.html": page_collection,
          "product.html": page_product, "industries.html": page_industries, "layouts.html": page_layouts}
 for _s, _n, _k, _b, _r in IND:
     PAGES["industry-%s.html" % _s] = (lambda t, s=_s: page_industry(t, s))
+for _c in CATS:
+    PAGES["cat-%s.html" % _c] = (lambda t, s=_c: page_category(t, s))
 
 
 # ----------------------------------------------------------------------------
@@ -1190,6 +1366,62 @@ EXTRA_CSS = r"""
 .two-col{display:grid;grid-template-columns:1.2fr 1fr;gap:40px}.blogs.one{grid-template-columns:1fr}
 .ph-banner-img{aspect-ratio:2560/836;border-radius:var(--r);margin-bottom:32px}.custom-split{align-items:center}
 @media(max-width:980px){.two-col{grid-template-columns:1fr}.plinks{columns:1}}
+[hidden]{display:none!important}
+.btn-ow{background:transparent;color:#fff;border-color:#fff}
+.hdr-over{background:transparent;color:#fff;position:absolute;top:auto;left:0;right:0;z-index:20;border-bottom:0}
+.hdr-over .logo img{filter:brightness(0) invert(1)}.hdr-over .cart span{background:#fff;color:#111}
+.sw-gold{background:#c9a66b}.sw-brown{background:#6b4a2f}.sw-gray{background:#9a9a9a}.sw-natural{background:#d8c3a0}.sw-cherry{background:#7a2e22}.sw-maple{background:#d9b98a}.sw-walnut{background:#5a3d28}.sw-red{background:#c62828}.sw-blue{background:#1e4fa3}
+.cat-hero{position:relative;min-height:380px;display:flex;align-items:flex-end;color:#fff;background:#111;overflow:hidden}
+.cat-hero .ph{position:absolute;inset:0;border-radius:0;aspect-ratio:auto}
+.cat-hero::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,.55),rgba(0,0,0,.25) 45%,rgba(0,0,0,.7));z-index:1}
+.cat-hero-in{position:relative;z-index:2;padding-bottom:30px;padding-top:140px}
+.cat-crumbs{display:flex;align-items:center;gap:16px;font-size:.85rem;margin-bottom:16px}.cat-crumbs a{color:#fff;text-decoration:none}.cat-crumbs a+a::before,.cat-crumbs span::before{content:"";display:inline-block;width:5px;height:5px;border-top:1.5px solid #fff;border-right:1.5px solid #fff;transform:rotate(45deg);margin-right:14px;vertical-align:middle}
+.cat-hero h1{font-size:clamp(3rem,7.5vw,6rem);line-height:1;margin:0;color:#fff;letter-spacing:-.04em}
+.cat-main{background:var(--bg);border-radius:20px 20px 0 0;margin-top:-20px;position:relative;z-index:3;padding:28px 0 60px}
+.cat-tools{display:flex;flex-wrap:wrap;align-items:center;gap:14px 30px;padding:6px 0 18px}
+.pill{display:inline-flex;align-items:center;gap:8px;border:1.5px solid var(--ink);border-radius:999px;padding:.7em 1.3em;font:500 .9rem var(--body);background:transparent;cursor:pointer;color:var(--ink);transition:background .2s,color .2s}
+.pill:hover{background:var(--ink);color:var(--bg)}.sortpill select{border:0;background:transparent;font:inherit;color:inherit;cursor:pointer;outline:0;padding-right:4px}
+.cat-tabs{display:flex;gap:6px 14px;align-items:baseline;flex:1;flex-wrap:wrap}.cat-tabs a{font-size:1.15rem;color:#b5b5b5;text-decoration:none;letter-spacing:-.02em;transition:color .2s}
+.cat-tabs a:hover{color:var(--ink)}.cat-tabs a.on{color:var(--ink);border-bottom:1.5px solid var(--ink)}.cat-tabs sup{font-size:.55em;margin-left:2px}.cat-tabs i{color:#ccc;font-style:normal}
+.cat-viewall{font-size:.85rem;text-decoration:underline;text-underline-offset:3px}
+.cat-filters{display:flex;gap:48px;flex-wrap:wrap;padding:18px 24px;margin-bottom:12px;background:var(--alt);border-radius:var(--r)}.cat-filters h4{margin:0 0 .5em;font-size:.9rem}.cat-filters label{display:flex;align-items:center;gap:8px;padding:3px 0;font-size:.9rem}
+.cat-count{font-size:.85rem;color:var(--mute);margin:0 0 14px}
+.cc-grid{grid-template-columns:repeat(4,1fr);gap:12px}
+.ccard{position:relative;background:#fafafa;border-radius:var(--r);overflow:hidden;border:0;display:flex;flex-direction:column;transition:box-shadow .25s,transform .25s}
+.ccard:hover{box-shadow:0 12px 28px rgba(0,0,0,.08);transform:translateY(-3px)}
+.cc-img{display:block;position:relative;aspect-ratio:1/1}.cc-img .ph{position:absolute;inset:0;background:transparent;border-radius:0;aspect-ratio:auto}.cc-img .ph img{transition:transform .5s}.ccard:hover .cc-img .ph img{transform:scale(1.04)}
+.cc-badge{position:absolute;top:14px;left:14px;z-index:2;background:#3f6212;color:#fff;border-radius:99px;padding:.2em .85em;font-size:.72rem}.cc-badge.sale{background:#e11d48}
+.cc-body{padding:0 18px 12px}.cc-brand{display:block;font:500 .6rem/1 ui-monospace,Menlo,Consolas,monospace;letter-spacing:.1em;color:#8a8a8a;margin:6px 0}
+.cc-row{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}.cc-name{font-size:.95rem;color:var(--ink);text-decoration:none;line-height:1.2}
+.cc-price{white-space:nowrap;font-size:.9rem}.cc-price s{display:block;color:#999;font-size:.78rem;text-align:right}.cc-price.sale{color:#e11d48;font-weight:600;text-align:right}
+.cc-sw{display:flex;gap:6px;margin-top:10px}.cc-specs{display:grid;grid-template-columns:1fr 1fr;border-top:1px solid #ececec;margin-top:auto}
+.cc-specs div{display:flex;align-items:center;gap:10px;padding:12px 18px;font-size:.85rem;min-width:0}.cc-specs div+div{border-left:1px solid #ececec}
+.cc-specs b{display:block;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.cc-specs small{display:block;color:#9a9a9a;font-size:.62rem}.cc-ic{flex:none;width:20px;height:20px;border:1.5px solid #bdbdbd;border-radius:50%}
+.promo-card{position:relative;border-radius:var(--r);overflow:hidden;color:#fff;text-decoration:none;display:flex;align-items:center;justify-content:center;text-align:center;padding:24px;background:#222;isolation:isolate}
+.promo-card .ph{position:absolute;inset:0;border-radius:0;aspect-ratio:auto;transition:transform .7s}.promo-card:hover .ph{transform:scale(1.06)}
+.promo-card::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,.35),rgba(0,0,0,.75));z-index:1}
+.pc-copy{position:relative;z-index:2}.pc-copy h3{color:#fff;font-size:1.6rem;margin:.6em 0 .3em;line-height:1.05}.pc-copy p{font-size:.9rem;margin:0 0 1.2em}.pc-ic{display:block;width:30px;height:30px;margin:0 auto;border:1.5px solid #fff;border-radius:50%}
+.pager{display:flex;gap:16px;align-items:center;justify-content:center;margin:44px 0 18px}.pager a{text-decoration:none;color:var(--ink);font-size:.95rem}
+.pager a.on{background:var(--ink);color:var(--bg);width:36px;height:36px;border-radius:50%;display:grid;place-items:center}
+.cat-seo{background-color:#171717;background-size:cover;background-position:center;color:#eee;border-radius:20px;margin:30px 20px 0;padding:clamp(60px,9vw,110px) 0}
+.cat-seo .wrap{max-width:900px}.cs-ic{display:block;width:34px;height:34px;border:1.5px solid #c9a66b;border-radius:50%;margin-bottom:70px}
+.cs-label{display:block;font:500 .75rem ui-monospace,Menlo,Consolas,monospace;letter-spacing:.3em;color:#c9a66b;margin-bottom:60px}.cat-seo p{font-size:.95rem;line-height:1.7;max-width:760px;color:#ddd}.note-d{font-size:.78rem!important;color:#888!important}
+.trust{padding:34px 0 10px}.trust .wrap{display:grid;grid-template-columns:repeat(4,1fr);gap:20px}.trust div{display:flex;gap:12px;align-items:flex-start;font-size:.85rem}
+.trust b{display:block;font-weight:500;font-size:.95rem;margin-bottom:2px}.trust small{color:var(--mute);font-size:.78rem;line-height:1.3}.tr-ic{flex:none;width:22px;height:22px;border:1.5px solid var(--ink);border-radius:50%}
+@media(max-width:1100px){.cc-grid{grid-template-columns:repeat(3,1fr)}}
+@media(max-width:760px){.cc-grid{grid-template-columns:repeat(2,1fr)}.trust .wrap{grid-template-columns:1fr 1fr}}
+@media(max-width:480px){.cc-grid{grid-template-columns:1fr}.cat-hero-in{padding-top:110px}}
+.t-release .pill,.t-prestige .pill,.t-release .ccard,.t-prestige .ccard{border-radius:0}
+.t-release .cat-main,.t-prestige .cat-main{border-radius:0;margin-top:0}.t-release .cat-seo,.t-prestige .cat-seo{border-radius:0;margin:30px 0 0}
+.t-release .cat-hero h1{font-weight:400}.t-prestige .cat-hero h1{font-size:clamp(2rem,5vw,3.8rem);letter-spacing:.14em;text-transform:uppercase}
+.t-prestige .cat-tabs a{font-family:"Instrument Sans",sans-serif;font-size:.95rem;letter-spacing:.06em;text-transform:uppercase}
+.t-prestige .cc-name{font-family:"Instrument Sans",sans-serif;text-transform:uppercase;letter-spacing:.06em;font-size:.82rem}
+.cat-intro{max-width:760px;color:var(--mute);margin:0 0 18px;font-size:.95rem}
+.cc-tip{grid-column:1/-1;display:flex;justify-content:space-between;align-items:center;gap:24px;flex-wrap:wrap;padding:26px 30px;background:var(--alt);border-radius:var(--r)}
+.cc-tip strong{display:block;font-size:1.2rem;margin-bottom:4px}.cc-tip p{margin:0;color:var(--mute);font-size:.9rem}
+.hmenu{display:none;background:none;border:0;color:inherit;font-size:1.5rem;cursor:pointer;line-height:1;padding:0}
+@media(max-width:980px){.hmenu{display:inline-block}.hdr .nav{display:none}.hdr.nav-open .nav{display:block}.hdr.nav-open{background:#111;color:#fff;position:relative}
+.nav>ul{flex-direction:column;gap:0}.nav>ul>li>a{display:block;padding:.85em 0;border-bottom:1px solid rgba(127,127,127,.25)}.hdr-in{padding:14px 18px}}
 .toast{position:fixed;left:50%;bottom:28px;transform:translateX(-50%);background:#171717;color:#fff;padding:.8em 1.4em;border-radius:99px;font-size:.9rem;z-index:300;box-shadow:0 8px 24px rgba(0,0,0,.25)}.toast[hidden]{display:none}
 .seo-toggle{position:fixed;left:18px;bottom:18px;z-index:250;background:#f5a623;color:#171717;border:0;border-radius:99px;padding:.7em 1.1em;font:700 .8rem system-ui,sans-serif;cursor:pointer;box-shadow:0 6px 18px rgba(0,0,0,.25)}
 .seo-toggle[aria-pressed=true]{background:#171717;color:#f5a623}
@@ -1247,7 +1479,8 @@ body.t-concept{line-height:1.35}
 .t-concept .btn-o:hover{background:#171717;color:#fff}.t-concept .btn-w:hover{background:#171717;color:#fff;border-color:#171717}
 .t-concept .btn:active{transform:scale(.97)}.t-concept .news .btn:hover{background:transparent;color:#fff;border-color:#fff}
 .t-concept .more{transition:background .2s,color .2s}.t-concept .more:hover{background:#171717;color:#fff}
-.hero-c .slides{position:relative;border-radius:16px;overflow:hidden;aspect-ratio:16/7;min-height:380px;background:#171717}
+.hero-c .slides{position:relative;width:100%;border-radius:16px;overflow:hidden;height:clamp(400px,44vw,640px);background:#171717}
+@media(max-width:560px){.slide-copy h1{font-size:1.5rem}.hero-c .btn-w{left:24px;right:auto;bottom:84px}.slide-copy{bottom:150px}}
 .hero-c .slide{position:absolute;inset:0;opacity:0;transition:opacity .7s ease;pointer-events:none;aspect-ratio:auto;min-height:0;border-radius:0;background:none}
 .hero-c .slide.on{opacity:1;pointer-events:auto}.hero-c .slide .ph{position:absolute;inset:0;border-radius:0;aspect-ratio:auto}
 .hero-c .slide .ph img{object-position:center}
@@ -1398,7 +1631,7 @@ if(fl){
     if(s==='lo')list.sort(function(a,b){return a.dataset.price-b.dataset.price});
     if(s==='hi')list.sort(function(a,b){return b.dataset.price-a.dataset.price});
     if(s==='new')list.sort(function(a,b){return b.dataset.new-a.dataset.new});
-    list.forEach(function(c){gridEl.appendChild(c)});
+    list.forEach(function(c){gridEl.appendChild(c)});var pr=gridEl.querySelector('.promo-card');var vis=[].filter.call(gridEl.querySelectorAll('.pcard'),function(c){return !c.hidden});if(pr){gridEl.insertBefore(pr,vis[7]||null)}var tp=gridEl.querySelector('.cc-tip');if(tp){gridEl.insertBefore(tp,vis[7]||null)}
   }
   fl.addEventListener('change',apply);sel.addEventListener('change',apply);
   document.querySelector('[data-clear]').onclick=function(){[].forEach.call(fl.querySelectorAll('input'),function(x){x.checked=x.dataset.f==='price'&&x.value===''});apply()};
@@ -1459,17 +1692,21 @@ if(seoBtn&&seoPanel){
   var il=0,el=0;[].forEach.call(document.querySelectorAll('main a[href]'),function(a){var h=a.getAttribute('href');if(a.hasAttribute('data-modal')||h==='#')return;if(/^https?:/.test(h))el++;else il++});
   var imgs=document.querySelectorAll('main img'),noAlt=[].filter.call(imgs,function(i){return !i.alt}).length;
   var chip=function(a){return '<div class="sp-chips">'+(a||[]).map(function(x){return '<span>'+x+'</span>'}).join('')+'</div>'};
-  var cnt=function(s,max){return '<em class="'+(s.length>max?'bad':'ok')+'">'+s.length+' characters (aim for '+max+' or fewer)</em>'};
+  var lenNote=function(s,max){return '<em class="'+(s.length>max?'bad':'ok')+'">'+s.length+' characters (aim for '+max+' or fewer)</em>'};
   var row=function(l,v,e){return '<div class="sp-row"><span>'+l+'</span><div>'+v+'</div>'+(e||'')+'</div>'};
   var ttl=document.title,mt=metaEl?metaEl.content:'';
   seoPanel.querySelector('[data-seo-body]').innerHTML=
-    row('Title tag',ttl,cnt(ttl,60))+row('Meta description',mt,cnt(mt,155))+row('H1',h1El?h1El.textContent:'')+row('Suggested live URL',sd.path||'')+
+    row('Title tag',ttl,lenNote(ttl,60))+row('Meta description',mt,lenNote(mt,155))+row('H1',h1El?h1El.textContent:'')+row('Suggested live URL',sd.path||'')+
     row('Primary keyword',sd.kw||'')+row('Secondary keywords',chip(sd.sec))+row('Schema',chip(sd.schema))+
     row('Links in main content',il+' internal, '+el+' external')+row('Images',imgs.length+' ('+noAlt+' missing alt text)')+
     row('Strategy notes','<ul>'+(sd.notes||[]).map(function(x){return '<li>'+x+'</li>'}).join('')+'</ul>');
   seoBtn.onclick=function(){var on=seoPanel.hidden;seoPanel.hidden=!on;document.body.classList.toggle('seo-on',on);seoBtn.setAttribute('aria-pressed',on?'true':'false');seoBtn.textContent=on?'Hide SEO view':'SEO view';
     [].forEach.call(document.querySelectorAll('h1,h2,h3'),function(h){h.setAttribute('data-seo',h.tagName)})};
 }
+var ft=document.querySelector('[data-filter-toggle]'),fp=document.querySelector('[data-filters]');
+if(ft&&fp){ft.onclick=function(){fp.hidden=!fp.hidden;ft.setAttribute('aria-expanded',fp.hidden?'false':'true');ft.querySelector('span').textContent=fp.hidden?'Show filters':'Hide filters'}}
+var hm=document.querySelector('[data-hmenu]');
+if(hm){hm.onclick=function(){var h=hm.closest('.hdr');var on=!h.classList.contains('nav-open');h.classList.toggle('nav-open',on);hm.setAttribute('aria-expanded',on?'true':'false')}}
 /* Product page */
 var pp=document.querySelector('[data-price]'),qty=document.querySelector('[data-qty]');
 if(pp&&qty){
@@ -1521,6 +1758,7 @@ th,td{padding:10px 12px;border-bottom:1px solid var(--line);text-align:left;vert
 <tr><td>SEO strategy visible to the client</td><td>SEO view panel on every page: title, description, H1, keywords, schema, links</td><td>Same</td><td>Same</td></tr>
 <tr><td>Shop by industry like the theme</td><td>Tall photo cards with a plus that opens, plus card-style mega menus</td><td>Square photo cards</td><td>Square cards, spaced caps</td></tr>
 <tr><td>Interactive feel</td><td>Rotating hero, pill nav, quick add, hover reveals</td><td>Hover reveals on cards</td><td>Hover reveals on cards</td></tr>
+<tr><td>Category pages like the Concept collection template</td><td>21 category pages: hero with title, sub-category tabs, filters, sort, real products, promo card, text block</td><td>Same structure, Release styling</td><td>Same structure, Prestige styling</td></tr>
 </table>
 <p class="lead" style="margin-top:22px">Still to do for the real build: confirm the 5 non-ecommerce pages and industry list from the workbook, the client's new logo and colors, a real configurator (app or custom code), a real booking tool for appointments, quantity pricing (marked Plus on the theme pages, needs checking), and the shipping zone approach.</p>
 </div></body></html>"""

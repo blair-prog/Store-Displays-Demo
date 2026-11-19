@@ -29,7 +29,7 @@ Content is taken from storedisplays.com so the concepts look like this client's 
 - **Links:** the main menu labels, the mega menu (the live site's categories), policies, blog, FAQs, volume
   discount pricing, Industries We Serve, Custom Millwork & Showcases. Deeper links open the live site in a new tab.
 - **Products:** 16 products with real names, SKUs and listing prices (gondola units other than "from $107" are sample).
-- **Images:** downloaded from storedisplays.com at the highest resolution the site serves and saved in `assets/img/` (44 files, about 13 MB): the logo, the home hero banner (2560 px wide), eight industry photos (about 2360 px square), product photos (900 px) and the gondola photos. They are the client's own photography; confirm usage rights before publishing anywhere public. A few category images on the live site are only 430 px wide, so the demos do not use them at large sizes.
+- **Images:** downloaded from storedisplays.com at the highest resolution the site serves and saved in `assets/img/` (236 files, about 36 MB): the logo, the home hero banner (2560 px wide), eight industry photos (about 2360 px square), product photos (900 px) for the home, gondola, product and all 21 category pages, and the gondola photos. They are the client's own photography; confirm usage rights before publishing anywhere public. A few category tile images on the live site are only 430 px wide, so the demos do not use them at large sizes.
 - **Gondola options:** unit types, lengths, heights, colors and shelf capacity follow the live Gondola Shelving page.
 - **Product page:** the 4′ Black Standard Extra Vision Display Case (ESC4/B) page uses its real features,
   specifications and variation options. Option prices are partly sample.
@@ -71,10 +71,14 @@ All SEO copy is draft wording for review. It has not been through keyword resear
 
 `index.html` home, `gondola.html` gondola landing page with the builder, `collection.html` filters, sort and
 product grid, `product.html` product page, `industries.html` Shop by Industry hub, `layouts.html` free store
-layouts and booking, and `industry-<name>.html` for each of the 8 industries.
+layouts and booking, `industry-<name>.html` for each of the 8 industries, and `cat-<name>.html` for each of the 21 live product categories (hero with breadcrumb and title, intro text, real sub-category tabs, filters, sort, real products with SKUs and prices, a promo card, FAQ and a text block, in the layout of the Concept collection template).
 
 The scope allows up to five non-ecommerce pages, to be confirmed against the workbook. These demos show more,
 so the page list in the real build needs agreeing.
+
+## Kickoff coverage
+
+The site follows the call: three top-level categories (Display Cases, Gondola Shelving, Store Fixtures & Displays with everything else as sub-categories), a gondola page with prices instead of request-a-quote, color and size as variants, Shop by Industry, free store layouts with appointment booking, new and trending products, the 10% newsletter offer, a shipping estimate by zone, and the SEO items (H1s, intro text, content below grids, FAQs, internal links). The PR description has the full table, including what a static mock cannot show (migration, payment and shipping integrations, access transfer, reports).
 
 ## Run locally
 
@@ -88,7 +92,7 @@ then open http://localhost:8765/. The page needs internet access only for the we
 
 ## Regenerate
 
-`demo/tools/build_demo.py` generates every file except this README and the tools folder:
+`demo/tools/build_demo.py` generates every page, stylesheet and script. It reads `demo/tools/categories.json` (category data scraped from storedisplays.com) and the images in `assets/img/`, and leaves this README and the tools folder alone:
 
 ```
 python demo/tools/build_demo.py demo
