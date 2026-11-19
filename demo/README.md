@@ -80,6 +80,10 @@ so the page list in the real build needs agreeing.
 
 The site follows the call: three top-level categories (Display Cases, Gondola Shelving, Store Fixtures & Displays with everything else as sub-categories), a gondola page with prices instead of request-a-quote, color and size as variants, Shop by Industry, free store layouts with appointment booking, new and trending products, the 10% newsletter offer, a shipping estimate by zone, and the SEO items (H1s, intro text, content below grids, FAQs, internal links). The PR description has the full table, including what a static mock cannot show (migration, payment and shipping integrations, access transfer, reports).
 
+## Design consistency
+
+Headings and eyebrows are set in Title Case on every page, the full-colour Store Displays logo is used in the header and footer (no inverted version), category and inner-page heroes sit on a darkened photo with a fixed overlay for legibility, and all pages share one container width and gutter.
+
 ## Run locally
 
 No build step. Serve the folder, for example from the repo root:

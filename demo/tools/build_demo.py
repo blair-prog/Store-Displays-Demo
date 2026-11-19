@@ -481,13 +481,11 @@ def header(theme, page):
         ann = ('<div class="ann"><span>United States</span><span>Same-day shipping, order by 2 pm ET</span>'
                '<span>Call %s</span><a href="#" data-modal="ship">Calculate shipping</a></div>') % PHONE1
         inner = nav + wordmark() + icons
-        cls = "hdr hdr-over" if page == "index.html" else "hdr"
+        cls = "hdr"
     else:
         ann = ('<div class="ann"><span>Same-day shipping on Ground orders placed by 2 pm ET</span>'
                '<span><a href="#" data-modal="ship">Calculate shipping</a> &nbsp;&middot;&nbsp; <a href="layouts.html">Free layout plan</a></span></div>')
         inner, cls = nav + wordmark() + icons, "hdr"
-    if page.startswith("cat-"):
-        cls = "hdr hdr-over"
     return '%s%s<header class="%s"><div class="hdr-in">%s</div></header>' % (concept_bar(theme, page), ann, cls, inner)
 
 
@@ -751,8 +749,47 @@ SECS = {
 }
 
 
+SMALL_WORDS = {"a", "an", "and", "as", "at", "but", "by", "for", "in", "nor", "of", "on", "or", "per", "the", "to", "vs", "via", "x"}
+
+
+def _tc_word(w, force):
+    m = re.match(r"^([^A-Za-z0-9&]*)(.*?)([^A-Za-z0-9;/]*)$", w)
+    lead, core, trail = m.group(1), m.group(2), m.group(3)
+    if not core or "&" in core or "/" in core or any(c.isdigit() for c in core):
+        return w
+    if any(c.isupper() for c in core[1:]) or (core.isupper() and len(core) > 1):
+        return w
+    parts = core.split("-")
+    out = []
+    for part in parts:
+        low = part.lower()
+        out.append(low if (low in SMALL_WORDS and not force and len(parts) == 1) else low[:1].upper() + low[1:])
+    return lead + "-".join(out) + trail
+
+
+def _tc_text(t, first, last):
+    tokens = re.split(r"(\s+)", t)
+    idx = [i for i, x in enumerate(tokens) if x.strip()]
+    for n, i in enumerate(idx):
+        prev = tokens[idx[n - 1]] if n else ""
+        force = (first and n == 0) or (last and n == len(idx) - 1) or prev.endswith((":", "?", "!", "."))
+        tokens[i] = _tc_word(tokens[i], force)
+    return "".join(tokens)
+
+
+def tc_headings(doc):
+    def fix(m):
+        parts = re.split(r"(<[^>]+>)", m.group(3))
+        text = [i for i, x in enumerate(parts) if x and not x.startswith("<")]
+        for i in text:
+            parts[i] = _tc_text(parts[i], i == text[0], i == text[-1])
+        return "<h%s%s>%s</h%s>" % (m.group(1), m.group(2), "".join(parts), m.group(1))
+    doc = re.sub(r"<h([1-4])([^>]*)>(.*?)</h\1>", fix, doc, flags=re.S)
+    return re.sub(r'(<span class="eyebrow">)([^<]*)(</span>)', lambda m: m.group(1) + _tc_text(m.group(2), True, True) + m.group(3), doc)
+
+
 def shell(theme, s, page, body):
-    return head(theme, s) + header(theme, page) + "<main>" + body + "</main>" + footer(theme)
+    return tc_headings(head(theme, s) + header(theme, page) + "<main>" + body + "</main>" + footer(theme))
 
 
 # ---- Pages ----------------------------------------------------------------
@@ -1038,13 +1075,14 @@ def page_industry(theme, slug):
 
 # ---- Category pages (Concept collection layout) ---------------------------------
 CAT_HERO = {
-    "shelving": "supermarket-2.jpg", "wall-standards": "pharmacies.jpg", "retail-systems": "apparel-stores.jpg",
-    "counters-showcases": "homepage-hero-3.1.jpg", "countertop-displays": "pharmacies.jpg", "glass-wooden-cubby-displays": "jewelry-store-2.jpg",
-    "cube-displays": "beauty-supply.jpg", "slatwall": "beauty-supply.jpg", "gridwall": "popup-store.jpg", "pegboard-hooks": "smoke-vape-shop.jpg",
-    "apparel-racks": "apparel-stores.jpg", "floor-merchandisers": "popup-store.jpg", "display-tables": "apparel-stores.jpg",
-    "mannequins": "apparel-stores.jpg", "jewelry-handbag-displays": "jewelry-store-2.jpg", "shoe-displays": "apparel-stores.jpg",
-    "hat-eyewear-displays": "beauty-supply.jpg", "card-and-magazine-displays": "pharmacies.jpg", "general-store-operations": "supermarket-2.jpg",
-    "candy-nut-storage-containers": "supermarket-2.jpg", "vintage-style-displays": "popup-store.jpg",
+    "shelving": "grocery-shelving.jpg", "wall-standards": "0316-113.jpg", "retail-systems": "0316-113.jpg",
+    "counters-showcases": "FTC48-SHOWCASE-e1715623739376.jpg", "countertop-displays": "3-1.jpg",
+    "glass-wooden-cubby-displays": "FTC48-SHOWCASE-e1715623739376.jpg", "cube-displays": "FTC48-SHOWCASE-e1715623739376.jpg",
+    "slatwall": "0316-113.jpg", "gridwall": "popup-store.jpg", "pegboard-hooks": "0316-113.jpg", "apparel-racks": "apparel-stores.jpg",
+    "floor-merchandisers": "popup-store.jpg", "display-tables": "FTC48-SHOWCASE-e1715623739376.jpg", "mannequins": "0316-113.jpg",
+    "jewelry-handbag-displays": "jewelry-store-2.jpg", "shoe-displays": "0316-113.jpg", "hat-eyewear-displays": "0316-113.jpg",
+    "card-and-magazine-displays": "pharmacies.jpg", "general-store-operations": "supermarket-2.jpg",
+    "candy-nut-storage-containers": "supermarket-2.jpg", "vintage-style-displays": "smoke-vape-shop.jpg",
 }
 FINISH_WORDS = ["Black", "White", "Silver", "Chrome", "Bronze", "Cream", "Gold", "Brown", "Gray", "Grey", "Natural", "Cherry", "Maple", "Walnut", "Red", "Blue", "Clear"]
 
@@ -1422,6 +1460,24 @@ EXTRA_CSS = r"""
 .hmenu{display:none;background:none;border:0;color:inherit;font-size:1.5rem;cursor:pointer;line-height:1;padding:0}
 @media(max-width:980px){.hmenu{display:inline-block}.hdr .nav{display:none}.hdr.nav-open .nav{display:block}.hdr.nav-open{background:#111;color:#fff;position:relative}
 .nav>ul{flex-direction:column;gap:0}.nav>ul>li>a{display:block;padding:.85em 0;border-bottom:1px solid rgba(127,127,127,.25)}.hdr-in{padding:14px 18px}}
+/* cohesion pass: one container, one header rhythm, readable heroes, the real logo everywhere */
+:root{--container:1440px;--gutter:32px}
+.wrap,.wrap-w{max-width:var(--container);padding-left:var(--gutter);padding-right:var(--gutter)}
+.wrap.narrow{max-width:900px}.hdr-in{max-width:var(--container)}
+.ann,.cbar{padding-left:var(--gutter);padding-right:var(--gutter)}
+.logo img{height:38px}.ftr .logo img{filter:none;background:#fff;padding:8px 14px;border-radius:8px;height:50px}
+.hero-c{max-width:var(--container);margin:0 auto;padding:0 var(--gutter) 8px}
+.cat-hero{min-height:300px}
+.cat-hero .ph img{filter:blur(2px) brightness(.5) saturate(.9);transform:scale(1.06)}
+.cat-hero::after{background:linear-gradient(90deg,rgba(10,10,10,.84),rgba(10,10,10,.58) 60%,rgba(10,10,10,.42))}
+.cat-hero-in{padding-top:72px;padding-bottom:46px}.cat-crumbs{margin-bottom:22px;font-size:.82rem}
+.cat-hero h1{font-size:clamp(2.2rem,5vw,3.9rem);line-height:1.06;max-width:15em;text-shadow:0 2px 26px rgba(0,0,0,.45)}
+.chero,.ghero{padding:clamp(44px,5vw,68px) 0}.chero .wrap,.ghero .wrap{max-width:var(--container)}
+.chero h1,.ghero h1{font-size:clamp(2.2rem,5vw,3.9rem);line-height:1.06;letter-spacing:-.03em;margin-bottom:.35em}
+.chero p,.ghero p{max-width:660px;margin-bottom:0}.chero .eyebrow,.ghero .eyebrow{margin-bottom:14px}
+.crumbs{padding-top:22px;padding-bottom:14px}.sh{margin-bottom:32px}
+.t-release .hero-r{padding:96px 20px 84px;min-height:min(78vh,700px)}
+@media(max-width:480px){.cat-hero-in{padding-top:48px}:root{--gutter:20px}}
 .toast{position:fixed;left:50%;bottom:28px;transform:translateX(-50%);background:#171717;color:#fff;padding:.8em 1.4em;border-radius:99px;font-size:.9rem;z-index:300;box-shadow:0 8px 24px rgba(0,0,0,.25)}.toast[hidden]{display:none}
 .seo-toggle{position:fixed;left:18px;bottom:18px;z-index:250;background:#f5a623;color:#171717;border:0;border-radius:99px;padding:.7em 1.1em;font:700 .8rem system-ui,sans-serif;cursor:pointer;box-shadow:0 6px 18px rgba(0,0,0,.25)}
 .seo-toggle[aria-pressed=true]{background:#171717;color:#f5a623}
